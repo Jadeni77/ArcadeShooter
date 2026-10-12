@@ -1,14 +1,23 @@
 # Project status
 
-Last reviewed: 2026-10-11 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-12 (America/New_York). Inspect `git status` and the project before each task.
 
 ## Current state
 
 - M0 documentation was merged into `develop` by [PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1). M1 first-person exploration was squash-merged into `develop` by [PR #2](https://github.com/Jadeni77/ArcadeShooter/pull/2). `main` remains at the historical initial scaffold commit.
-- M2 first-person weapons and shooting is implemented on `feature/weapon-shooting` for review through a PR to `develop`. The project owner selected this local combat slice before the previously proposed online foundation; the roadmap now reflects that order.
-- `Assets/Scenes/FirstPersonTest.unity` remains the enabled three-room test scene. It now contains five resettable targets. `Assets/Prefabs/FirstPersonPlayer.prefab` retains M1 movement and look, with a separate automatic rifle, placeholder view model, and weapon HUD.
+- M2 first-person weapons and shooting was squash-merged into `develop` by [PR #3](https://github.com/Jadeni77/ArcadeShooter/pull/3). M3 enemy AI and combat is implemented on `feature/enemy-ai-combat` for review by PR to `develop`. `main` remains at the historical initial scaffold commit.
+- `Assets/Scenes/FirstPersonTest.unity` remains the enabled three-room test scene. It retains five resettable targets and now has a baked NavMesh plus three placeholder melee enemies. `Assets/Prefabs/FirstPersonPlayer.prefab` retains M1 movement/look and the M2 rifle, view model, and ammunition HUD; it now also has player health and a health/death HUD.
 - The rifle uses the existing Input System `Attack` action and a new `Reload` action bound to R. It also reloads automatically on the last shot when reserve ammunition remains. `AutomaticRifle` inspector fields control damage, rounds per second, magazine and reserve ammunition, reload duration, range, flash duration, and asset references. Reloads finish on the rifle's own timer. A separate `WeaponViewModel` on the rifle model owns recoil and the reload drop and tilt; it only reads `IsReloading`, `ReloadProgress`, and the `Fired` event, so changing, disabling, or replacing the animation cannot change reload timing or ammunition. Hits are local camera raycasts against `IDamageable` targets; there is no network synchronization yet.
 - Gunfire, impact, and reload clips are self-generated temporary audio. The target and rifle meshes/materials are Unity primitives. The ammo HUD uses imported Unity TextMesh Pro essentials; the bundled Liberation Sans font and its OFL terms are recorded in `ASSET_LICENSES.md`.
+
+## M3 implementation and verification
+
+- `MeleeEnemy` has Idle, Chase, Attack, and Dead states. A `NavMeshAgent` follows an acquired living player; a physics raycast prevents melee damage through walls. Detection radius, movement speed, attack range, damage, and cooldown are Inspector fields. `EnemyHealth` implements the existing `IDamageable` interface, and `EnemyFeedback` provides damage, attack, and death color cues. The model is made from Unity primitives.
+- `PlayerHealth` has Inspector-configurable maximum health. At zero HP it disables movement and the rifle; the HUD shows health and a death prompt. Press R while dead, or use the component's **Restart Test Scene** context menu in Play mode, to reload the test scene. This is a local testing reset, not multiplayer respawn or revival.
+- Unity 6000.6.5f1 compiled the final scripts with zero errors and warnings. The final cleared console contained zero errors and warnings. The Game view showed the health and ammunition HUDs, existing targets, and enemy placeholder; the death message was hidden at 100 HP after correcting HUD initialization.
+- Editor Play mode checks: three agents were on the NavMesh; paths from room 1 to 2 and room 2 to 3 were complete. An enemy began Idle outside its 4.5-unit detection radius, entered Chase after the player approached, and reached Attack; health fell by 12 per attack. Two attack decisions at the same simulation time reduced health 100 → 88 → 88, confirming the cooldown gate. Moving the player out of range returned it to Chase. A line-of-sight check across a solid wall returned false at 1.56 units, within the 1.7-unit melee range.
+- The existing rifle raycast hit the enemy body. Three shots reduced enemy HP 60 → 40 → 20 → 0 and ammunition 30 → 29 → 28 → 27. At zero HP, the enemy entered Dead, its NavMeshAgent was disabled, subsequent damage returned false, and the body showed the death color. Player death at zero HP disabled movement and the rifle and showed `HEALTH 0 / 100` plus the restart prompt. Invoking the same scene-reset method used by R replaced the player instance and restored 100 HP, the rifle, and all three enemies.
+- The R-key restart gesture, movement feel while kiting, mouse aim, attack/damage flash readability, and the full route through both doorways still need a human Game view play test. Unity CLI key simulation did not reliably drive the R-key path; the scene-reset method itself was verified. No online synchronization, respawn, or revive system was added.
 
 ## M2 verification
 
@@ -23,12 +32,12 @@ Last reviewed: 2026-10-11 (America/New_York). Inspect `git status` and the proje
 
 ## Manual play test
 
-Open `Assets/Scenes/FirstPersonTest.unity` in Unity and press Play. Click the Game view to capture the cursor. Use WASD, mouse look, Shift, and Space as before. Aim the center crosshair at a teal target and click; hold left click to fire automatically. Watch the ammo counter, target flash, hit confirmation, impact, and muzzle flash; listen for gunfire and impacts. Empty the magazine and verify reload starts automatically, shows `RELOADING`, lowers and tilts the weapon, blocks shooting, then returns it to rest and refills from reserve. Fire a few rounds and press R to check manual reload uses the same motion. Destroy a target with three hits, wait about four seconds for it to reappear, then shoot it again. Press Escape to release the cursor.
+Open `Assets/Scenes/FirstPersonTest.unity` in Unity and press Play. Click the Game view to capture the cursor. Use WASD, mouse look, Shift, and Space; approach the red capsule enemy in room 1 and then back away to watch it chase. Kite it around the crate and through both doorways. Let it attack, watch the health counter and damage flash, then shoot it three times and check that its body turns gray and it stops attacking. Shoot a teal target to confirm it still resets. After player health reaches zero, verify movement and shooting stop and press R to reload the test scene. While alive, R still reloads the rifle. Press Escape to release the cursor.
 
 ## Existing Git change to preserve
 
-`ProjectSettings/ProjectSettings.asset` has an older uncommitted cloud project, organization, and project-name edit. Its cloud association still needs owner confirmation before committing. Keep it out of the M2 PR and do not discard it.
+`ProjectSettings/ProjectSettings.asset` has an older uncommitted cloud project, organization, and project-name edit. Its cloud association still needs owner confirmation before committing. Keep it out of the M3 PR and do not discard it.
 
 ## Next milestone
 
-Review and merge M2 only with the project owner's approval and required human review. Next, validate package compatibility, service setup, ownership, and any costs before the two-player online foundation. No online packages or paid services were introduced in M2.
+Review M3 through its PR; do not merge without the project owner's approval and required human review. Next, validate package compatibility, service setup, ownership, and any costs before the two-player online foundation. No online packages or paid services were introduced in M3.
