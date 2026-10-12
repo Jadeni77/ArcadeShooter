@@ -1,40 +1,31 @@
 # Project status
 
-Last reviewed: 2026-10-11 (America/New_York). This is a snapshot; inspect `git status` and the project again before each task.
+Last reviewed: 2026-10-11 (America/New_York). Inspect `git status` and the project before each task.
 
 ## Current state
 
-- M0 documentation is complete. No gameplay has been implemented by this documentation task.
-- Unity 6000.6.5f1; URP 17.6.0; Apple M4 Mac with 24 GB RAM is the initial development and test environment.
-- The Unity starter project has one enabled scene, `Assets/Scenes/SampleScene.unity`, an Input System actions asset, and template/readme scripts. There is no first-person controller, gun, enemy, mission flow, or online gameplay.
-- Input System and AI Navigation are installed. Netcode for GameObjects and Unity Multiplayer Services are proposed but not installed. `com.unity.pipeline@0.8.0-exp.1` supports Unity CLI Editor control.
-- The existing Unity Editor log showed successful package resolution and script compilation. This task did not rerun the Editor, a build, or gameplay tests.
-- Git workflow is documented in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). `develop` is GitHub's default branch, and [bootstrap PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1) records the initial branch setup. Active rulesets protect `main` and `develop`.
+- M0 documentation was merged into `develop` by [bootstrap PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1). `main` remains at the historical initial scaffold commit.
+- M1 first-person exploration is implemented on `feature/first-person-controller` for review through a PR to `develop`.
+- `Assets/Scenes/FirstPersonTest.unity` is the enabled build scene. It contains three connected graybox rooms, collision walls, obstacles, a spawn marker, a player prefab instance, and directional lighting. `SampleScene.unity` is preserved and disabled in build settings.
+- `Assets/Prefabs/FirstPersonPlayer.prefab` uses a `CharacterController`, the existing Input System actions asset, a first-person camera, and separate movement and look scripts. Inspector fields tune movement, sprint, acceleration, jump, gravity, sensitivity, and pitch limit.
+- No networking, combat, enemy, UI, or paid asset/service was added. The scene uses Unity primitives and URP materials only.
 
-## Existing Git changes to preserve
+## M1 verification
 
-These six changes predate M0; their content was preserved during the branch bootstrap:
+- Unity 6000.6.5f1 imported the new scripts and reported successful recompilation (`failed: false`, `compilationFailed: false`). The Editor console reported zero errors and zero warnings after testing.
+- Play mode opened the saved scene with the player camera at the spawn. Simulated W moved the player from x = -10.0 through both passages to the east room; movement stopped at the outer wall at x = 14.42. Left Shift was held during the second traversal.
+- A queued mouse delta changed player yaw from 90° to 102° and camera pitch from 0° to 6°. A large mouse delta stopped at the 85° pitch limit. Escape unlocked the cursor.
+- A queued Space press raised the player from y = 0.98 to y = 2.06. A second press while airborne did not reset the upward velocity.
+- The Unity Editor was left out of Play mode. Movement feel, all keyboard directions, and the full exploration loop still need a human play test in the Game view before merge.
 
-1. Deleted `Assets/Editor.meta`.
-2. Deleted `Assets/Editor/HubForceResolve.cs`.
-3. Deleted `Assets/Editor/HubForceResolve.cs.meta`.
-4. Modified `Packages/packages-lock.json` after Unity resolved the already-declared Pipeline package.
-5. Modified `ProjectSettings/ProjectSettings.asset` with cloud project, organization, and project-name fields.
-6. Modified `ProjectSettings/QualitySettings.asset` with an Editor serialization update.
+## Human play test
 
-The deleted script was a one-time package-resolve helper that deleted itself and its empty folder. It is not gameplay code. Feature-branch commit `80cbda0` records the helper deletion, lockfile update, and quality serialization update. The cloud association should be confirmed before `ProjectSettings/ProjectSettings.asset` is committed; that file remains in the working tree.
+Open `Assets/Scenes/FirstPersonTest.unity` and press Play. Click the Game view if it does not have focus. Move with WASD, hold Left Shift to sprint, press Space to jump, and move the mouse to look. Walk through both doorways into room 3, then backtrack; try walking into walls and obstacles and jumping again before landing. Press Escape to release the cursor, then click the Game view to capture it again.
 
-The bootstrap work was prepared on `feature/repository-bootstrap` from initial commit `0809580`. `develop` is the verified GitHub default. The initial commit is a project scaffold, not a verified clean release baseline. Nothing was committed directly to `main` or `develop` after branch creation. Inspect the live PR and branches for their current merge state.
+## Existing Git change to preserve
 
-## Known issues and open work
-
-- No blocking package resolution or C# compilation error was found in the existing logs. UPM selected Newtonsoft JSON 3.2.2 over a dependency's requested 3.0.2 and completed resolution.
-- Online service prerequisites, package compatibility, movement authority, host-exit behavior, and any service costs have not been validated for this game.
-- Combat feel, movement feel, audio mix, performance, and two-player online operation are untested because gameplay does not exist yet.
-- The feature branch records intentional removal of the one-time helper and the regenerated lockfile. The merged state is tracked by bootstrap PR #1.
-- The repository is public and active rulesets protect `main` and `develop`. Only the owner is listed as a collaborator, so add another reviewer with write access to satisfy the ordinary one-approval rule on future PRs. No CI workflow or required checks exist yet.
-- Review the cloud project identifiers in the pending settings change before committing that file.
+`ProjectSettings/ProjectSettings.asset` still has an uncommitted cloud project, organization, and project-name edit predating M1. Its cloud association needs owner confirmation before it is committed. Keep it out of the M1 PR and do not discard it.
 
 ## Next milestone
 
-**Decide how to handle the uncommitted cloud settings and add an eligible reviewer**, then **M1 — first-person exploration** after bootstrap PR #1 is merged. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for the PR policy and [ROADMAP.md](ROADMAP.md) for the first gameplay acceptance criteria.
+Review and approve M1 after the human play test. Then begin M2, the two-player online foundation, only after separately validating package compatibility, service setup, ownership, and any costs. An eligible human reviewer is still needed for ordinary protected-branch PR approval.

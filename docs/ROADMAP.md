@@ -19,4 +19,6 @@ Each milestone should leave a playable, testable slice. Complete its acceptance 
 - If a milestone exposes a design problem, update the decision record and acceptance criteria before broadening implementation.
 - Long-term progression, rankings, achievements, difficulty modes, bosses, and content updates stay outside the first prototype.
 
-**Recommended first development milestone:** M1, a small explorable greybox with responsive first-person movement and no automatic travel.
+**First development milestone:** M1, a small explorable graybox with responsive first-person movement and no automatic travel.
+
+M1 is implemented on `feature/first-person-controller` and has passed Unity import, compilation, and targeted Editor Play mode checks. A human movement-feel and full-route play test remains before review and merge. See [STATUS.md](STATUS.md).

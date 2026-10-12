@@ -15,7 +15,7 @@ This document separates observed project state from proposed implementation. Pro
 | Rendering | Universal Render Pipeline 17.6.0, with Mobile and PC quality assets |
 | Input | Input System 1.20.0 installed; `Assets/InputSystem_Actions.inputactions` exists, with Move, Look, Attack, Jump, Sprint, and other actions. Reload is not currently an action. |
 | Navigation | AI Navigation 2.0.15 installed; no gameplay navigation system exists yet. |
-| Scene and code | `Assets/Scenes/SampleScene.unity` is the only enabled build scene. The C# files under `Assets/TutorialInfo` are template/readme code; there is no game controller, combat, enemy, or session code. |
+| Scene and code | `Assets/Scenes/FirstPersonTest.unity` is the enabled build scene. `SampleScene.unity` remains in the project. `Assets/Player` contains the M1 controller; there is no combat, enemy, or session code. |
 | Online packages | `com.unity.netcode.gameobjects` and `com.unity.services.multiplayer` are not in `Packages/manifest.json`. `com.unity.pipeline` is installed for Unity CLI Editor control; it is not the gameplay networking stack. |
 | Platform | macOS is the first development and test target; Windows is a later compatibility goal. |
 
@@ -23,7 +23,7 @@ This document separates observed project state from proposed implementation. Pro
 
 | System | Proposed responsibility | Validation needed |
 | --- | --- | --- |
-| Input and player | Read actions from the existing Input System asset. A local first-person controller owns mouse look, WASD movement, sprint, and jump. A player camera follows only that player's input. | Test mouse feel, cursor capture, frame-rate independence, slopes/collisions, and the existing action bindings on macOS. |
+| Input and player | Implemented in M1: `PlayerInput` reads the existing Player action map. `FirstPersonMovement` uses a `CharacterController` and a short floor probe; `FirstPersonLook` controls local yaw and clamped camera pitch. Disable these local control components and the camera on remote player instances when ownership is added in M2. | Human play testing must still judge movement feel and slopes. M2 must verify ownership behavior. |
 | Online group | Use Unity Multiplayer Services' unified Sessions API to create/join an online group, initially by join code. A host selects the mission. | Verify installed package versions, project/service configuration, authentication flow, two-player connection, and any usage or billing requirements before enabling a service. |
 | Gameplay sync | Use Netcode for GameObjects with GameObjects/MonoBehaviours. Start with one player prefab and the state needed for the two-player slice. | Prove spawn, ownership, movement replication, disconnect cleanup, and latency behavior in two separate clients. |
 | Authority | A player-hosted match is the initial proposal. The host decides enemy AI, spawns, danger-zone transitions, objective state, and final damage/health outcomes. Local input and immediate cosmetic feedback stay responsive on each client. | Decide movement authority and validation details through a real network test. Host departure, migration, and cheating limits remain open questions. |
@@ -35,6 +35,8 @@ This document separates observed project state from proposed implementation. Pro
 | Audio and VFX | AudioSources play local, spatial sound; an AudioMixer can group weapons, enemies, ambience, music, and UI. Local cosmetic effects respond immediately; confirmed impacts follow authoritative results. | Test audible feedback on host and client, mix levels, transitions into/out of danger, and asset licenses. |
 
 The session API is proposed because Unity documents it as the unified route for creating and joining multiplayer games, and documents Netcode for GameObjects as the GameObject/MonoBehaviour gameplay stack. A client-hosted network is a practical first test for a small cooperative game; the choice is not yet validated for resilience or production cost. [Unity Sessions overview](https://docs.unity.com/en-us/mps-sdk/sessions), [create a session](https://docs.unity.com/en-us/mps-sdk/create-session), [Sessions with Netcode](https://docs.unity.com/en-us/mps-sdk/build-sessions-landing).
+
+The M1 test map is separate from the starter scene. The Editor menu command `ArcadeShooter > Build First-Person Test Scene` creates the prefab, URP materials, graybox scene, and build-scene entry through Unity APIs. Run it only when intentionally regenerating the M1 scene because it replaces those generated assets.
 
 ## Suggested flow for the first online slice
 

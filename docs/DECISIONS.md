@@ -12,15 +12,15 @@ Use this file to distinguish decisions the project owner has made from technical
 | D-004 | Use Unity 6000.6.5f1, URP, C#, and Git. Develop and test on macOS first; plan for Windows later. | Matches the current project and development environment. |
 | D-005 | Build a narrow two-player first prototype before broader progression and content. | The first slice validates movement, online cooperation, shooting, an enemy, a danger zone, an objective, and extraction without implementing all future features at once. |
 | D-006 | Use placeholders first and track third-party asset sources and licenses. Do not introduce paid services or assets without approval. | Keeps the early prototype inexpensive and its assets auditable. |
-| D-007 | Use `main` for approved stable releases and `develop` for staging; branch features and normal fixes from `develop`, and urgent production hotfixes from `main`. | Separates release history from active development. The remote branch bootstrap is still pending. |
+| D-007 | Use `main` for approved stable releases and `develop` for staging; branch features and normal fixes from `develop`, and urgent production hotfixes from `main`. | Separates release history from active development. The remote branch bootstrap was completed by PR #1. |
 | D-008 | Route repository changes through PRs. Feature and normal fix PRs target `develop`; release PRs target `main`; production hotfixes return to `develop`. | Gives each change an explicit review and integration path. |
 | D-009 | After bootstrap, do not commit or push directly to `main` or `develop`, force push protected branches, or let Codex merge PRs without explicit approval. Require automated checks once configured and human review where GitHub can enforce it. | Protects both branches and keeps merge authority with the project owner. |
+| D-010 | For M1, use the installed Input System Player actions and a `CharacterController` with separate movement and camera scripts. Keep the M1 player local and add ownership checks in M2. | Reuses the existing controls, gives collision and grounded jumping, and avoids adding a networking dependency before the online slice. |
 
 ## Proposed architecture, pending verification
 
 | Topic | Proposal | Why it is open |
 | --- | --- | --- |
-| Input | Use the installed Input System actions asset for the FPS controller. | The existing bindings and gameplay feel need inspection in M1. |
 | Online stack | Add Netcode for GameObjects and the unified Unity Multiplayer Services package; use session create/join with a code for the first online slice. | Packages and online project setup are not installed/validated yet. |
 | Hosting | Start with a player-hosted match; the host owns enemy AI and important game state. | M2–M4 must test latency, disconnects, authority boundaries, and operating constraints. |
 | Pathfinding | Use installed AI Navigation for one enemy on a baked NavMesh. | No playable map or enemy exists yet. |
