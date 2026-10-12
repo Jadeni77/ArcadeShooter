@@ -18,6 +18,6 @@ This is a 3D online cooperative first-person shooter for 2–4 players. Players 
 - Verify compilation and relevant tests when possible. Say exactly what was tested and what could not be tested.
 - Update `docs/STATUS.md` after each completed milestone. Update the vision, architecture, roadmap, and decisions when the corresponding design changes.
 - Follow [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md): work from `develop` on a `feature/*` or `fix/*` branch; use `hotfix/*` from `main` only for urgent production fixes. Route all repository changes through PRs. Do not commit or push directly to `main` or `develop` after the approved one-time branch bootstrap.
-- Never force push `main` or `develop`. Do not merge a PR, change GitHub settings, or make a Git commit unless requested or explicitly approved. Respect configured checks and human review; report when GitHub cannot enforce them. The current private repository has no enforceable branch protection on its present plan, so the written PR policy remains mandatory.
+- Never force push `main` or `develop`. Do not merge a PR, change GitHub settings, or make a Git commit unless requested or explicitly approved. Respect configured checks and human review; report when a required review or check cannot be satisfied. Both protected branches use GitHub rulesets; inspect the live settings before each merge.
 
 The initial development and test target is macOS. Keep future Windows support in mind without adding platform complexity before it is needed.
