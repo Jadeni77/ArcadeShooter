@@ -1392,6 +1392,8 @@ MonoBehaviour:
   hud: {fileID: 5447685652604179520}
   recoilDistance: 0.07
   recoilRecovery: 12
+  reloadLowerDistance: 0.22
+  reloadTilt: {x: 15, y: 0, z: -8}
   flashDuration: 0.055
   gunfireSound: {fileID: 8300000, guid: 78c7cd8c52277454186e121ba0512383, type: 3}
   impactSound: {fileID: 8300000, guid: 351f863a36b8e488f878dc5016c24e99, type: 3}

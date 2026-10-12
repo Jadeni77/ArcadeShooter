@@ -26,6 +26,8 @@ namespace ArcadeShooter.Combat
         [Header("Feedback")]
         [SerializeField, Min(0f)] private float recoilDistance = 0.07f;
         [SerializeField, Min(0f)] private float recoilRecovery = 12f;
+        [SerializeField, Min(0f)] private float reloadLowerDistance = 0.22f;
+        [SerializeField] private Vector3 reloadTilt = new Vector3(15f, 0f, -8f);
         [SerializeField, Min(0f)] private float flashDuration = 0.055f;
         [SerializeField] private AudioClip gunfireSound;
         [SerializeField] private AudioClip impactSound;
@@ -35,9 +37,13 @@ namespace ArcadeShooter.Combat
         private InputAction reloadAction;
         private AudioSource audioSource;
         private Vector3 restingPosition;
+        private Quaternion restingRotation;
+        private bool poseInitialized;
+        private float recoilOffset;
         private int magazine;
         private int reserve;
         private float nextShotAt;
+        private float reloadStartedAt;
         private float reloadEndsAt;
         private float flashEndsAt;
         private bool reloading;
@@ -55,7 +61,11 @@ namespace ArcadeShooter.Combat
             if (aimCamera == null)
                 Debug.LogError("AutomaticRifle needs an aim camera.", this);
             if (weaponModel != null)
+            {
                 restingPosition = weaponModel.localPosition;
+                restingRotation = weaponModel.localRotation;
+                poseInitialized = true;
+            }
             magazine = magazineSize;
             reserve = startingReserve;
             if (muzzleFlash != null)
@@ -76,20 +86,22 @@ namespace ArcadeShooter.Combat
 
             if (muzzleFlash != null && muzzleFlash.activeSelf && Time.time >= flashEndsAt)
                 muzzleFlash.SetActive(false);
-            if (weaponModel != null)
-                weaponModel.localPosition = Vector3.Lerp(weaponModel.localPosition, restingPosition,
-                    1f - Mathf.Exp(-recoilRecovery * Time.deltaTime));
+            UpdateWeaponPose();
         }
 
         private bool TryFire()
         {
-            if (reloading || magazine <= 0 || aimCamera == null || Time.time < nextShotAt)
+            if (reloading || aimCamera == null || Time.time < nextShotAt)
                 return false;
+            if (magazine <= 0)
+            {
+                BeginReload();
+                return false;
+            }
 
             magazine--;
             nextShotAt = Time.time + 1f / roundsPerSecond;
-            if (weaponModel != null)
-                weaponModel.localPosition = restingPosition - Vector3.forward * recoilDistance;
+            recoilOffset = recoilDistance;
             if (muzzleFlash != null)
             {
                 muzzleFlash.SetActive(true);
@@ -108,6 +120,8 @@ namespace ArcadeShooter.Combat
                 if (damageable != null && damageable.ApplyDamage(damage, hit.point))
                     hud?.ConfirmHit();
             }
+            if (magazine == 0)
+                BeginReload();
             RefreshHud();
             return true;
         }
@@ -117,7 +131,9 @@ namespace ArcadeShooter.Combat
             if (reloading || magazine >= magazineSize || reserve <= 0)
                 return;
             reloading = true;
-            reloadEndsAt = Time.time + reloadDuration;
+            reloadStartedAt = Time.time;
+            reloadEndsAt = reloadStartedAt + reloadDuration;
+            recoilOffset = 0f;
             Play(reloadSound);
             RefreshHud();
         }
@@ -135,6 +151,36 @@ namespace ArcadeShooter.Combat
         {
             if (clip != null)
                 audioSource.PlayOneShot(clip);
+        }
+
+        private void UpdateWeaponPose()
+        {
+            if (weaponModel == null)
+                return;
+
+            recoilOffset = Mathf.Lerp(recoilOffset, 0f,
+                1f - Mathf.Exp(-recoilRecovery * Time.deltaTime));
+
+            float reloadPose = 0f;
+            if (reloading)
+            {
+                float progress = Mathf.Clamp01((Time.time - reloadStartedAt) / reloadDuration);
+                float lower = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(progress / 0.25f));
+                float raise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((progress - 0.65f) / 0.35f));
+                reloadPose = lower * (1f - raise);
+            }
+
+            weaponModel.localPosition = restingPosition - Vector3.forward * recoilOffset
+                + Vector3.down * (reloadLowerDistance * reloadPose);
+            weaponModel.localRotation = restingRotation * Quaternion.Euler(reloadTilt * reloadPose);
+        }
+
+        private void OnDisable()
+        {
+            if (!poseInitialized || weaponModel == null)
+                return;
+            weaponModel.localPosition = restingPosition;
+            weaponModel.localRotation = restingRotation;
         }
 
         private void RefreshHud() => hud?.SetAmmo(magazine, reserve, reloading);
