@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 namespace ArcadeShooter.Player
@@ -31,15 +33,17 @@ namespace ArcadeShooter.Player
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
-                if (Cursor.lockState == CursorLockMode.Locked)
-                    UnlockCursor();
-                else
-                    LockCursor();
+                UnlockCursor();
                 return;
             }
 
             if (Cursor.lockState != CursorLockMode.Locked)
+            {
+                if (Mouse.current != null && Mouse.current.leftButton.wasReleasedThisFrame &&
+                    !IsPointerOverUi())
+                    LockCursor();
                 return;
+            }
 
             if (cameraPivot == null)
                 return;
@@ -65,6 +69,20 @@ namespace ArcadeShooter.Player
         {
             Cursor.lockState = CursorLockMode.None;
             Cursor.visible = true;
+        }
+
+        private static bool IsPointerOverUi()
+        {
+            EventSystem eventSystem = EventSystem.current;
+            if (eventSystem == null || Mouse.current == null)
+                return false;
+            PointerEventData pointer = new PointerEventData(eventSystem)
+            {
+                position = Mouse.current.position.ReadValue()
+            };
+            var hits = new List<RaycastResult>();
+            eventSystem.RaycastAll(pointer, hits);
+            return hits.Count > 0;
         }
     }
 }

@@ -37,7 +37,7 @@ namespace ArcadeShooter.Networking
         private string status = "Host a game or enter a join code.";
         private float nextRefresh;
         private static string menuReturnStatus;
-        private const string MatchStatus = "Match started. Press Esc to use Leave Game; press Esc again to aim.";
+        private const string MatchStatus = "Match started. Press Esc to use Leave Game; click the map to aim again.";
 
         private void Awake()
         {
