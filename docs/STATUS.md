@@ -4,28 +4,29 @@ Last reviewed: 2026-10-11 (America/New_York). Inspect `git status` and the proje
 
 ## Current state
 
-- M0 documentation was merged into `develop` by [bootstrap PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1). `main` remains at the historical initial scaffold commit.
-- M1 first-person exploration is implemented on `feature/first-person-controller` for review through a PR to `develop`.
-- `Assets/Scenes/FirstPersonTest.unity` is the enabled build scene. It contains three connected graybox rooms, collision walls, obstacles, a spawn marker, a player prefab instance, and directional lighting. `SampleScene.unity` is preserved and disabled in build settings.
-- `Assets/Prefabs/FirstPersonPlayer.prefab` uses a `CharacterController`, the existing Input System actions asset, a first-person camera, and separate movement and look scripts. Inspector fields tune movement, sprint, acceleration, jump, gravity, sensitivity, and pitch limit.
-- No networking, combat, enemy, UI, or paid asset/service was added. The scene uses Unity primitives and URP materials only.
+- M0 documentation was merged into `develop` by [PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1). M1 first-person exploration was squash-merged into `develop` by [PR #2](https://github.com/Jadeni77/ArcadeShooter/pull/2). `main` remains at the historical initial scaffold commit.
+- M2 first-person weapons and shooting is implemented on `feature/weapon-shooting` for review through a PR to `develop`. The project owner selected this local combat slice before the previously proposed online foundation; the roadmap now reflects that order.
+- `Assets/Scenes/FirstPersonTest.unity` remains the enabled three-room test scene. It now contains five resettable targets. `Assets/Prefabs/FirstPersonPlayer.prefab` retains M1 movement and look, with a separate automatic rifle, placeholder view model, and weapon HUD.
+- The rifle uses the existing Input System `Attack` action and a new `Reload` action bound to R. Inspector fields control damage, rounds per second, magazine and reserve ammunition, reload duration, range, recoil, flash duration, and asset references. Hits are local camera raycasts against `IDamageable` targets; there is no network synchronization yet.
+- Gunfire, impact, and reload clips are self-generated temporary audio. The target and rifle meshes/materials are Unity primitives. The ammo HUD uses imported Unity TextMesh Pro essentials; the bundled Liberation Sans font and its OFL terms are recorded in `ASSET_LICENSES.md`.
 
-## M1 verification
+## M2 verification
 
-- Unity 6000.6.5f1 imported the new scripts and reported successful recompilation (`failed: false`, `compilationFailed: false`). The Editor console reported zero errors and zero warnings after testing.
-- Play mode opened the saved scene with the player camera at the spawn. Simulated W moved the player from x = -10.0 through both passages to the east room; movement stopped at the outer wall at x = 14.42. Left Shift was held during the second traversal.
-- A queued mouse delta changed player yaw from 90° to 102° and camera pitch from 0° to 6°. A large mouse delta stopped at the 85° pitch limit. Escape unlocked the cursor.
-- A queued Space press raised the player from y = 0.98 to y = 2.06. A second press while airborne did not reset the upward velocity.
-- The Unity Editor was left out of Play mode. Movement feel, all keyboard directions, and the full exploration loop still need a human play test in the Game view before merge.
+- Unity 6000.6.5f1 recompiled the final scripts with zero errors and warnings. A fresh Play test after clearing the console reported zero errors and warnings.
+- The Game view visibly showed the placeholder rifle, central crosshair, five targets, and ammunition readout. A shot against the first target reduced health from 60 to 40 and magazine ammunition from 30 to 29. Two more hits depleted its health, disabled its renderer and collider, and it later reset to 60 health with both restored.
+- Two immediate fire attempts produced one shot, confirming the configured fire gate. Held automatic fire exhausted a 30-round magazine. Another fire attempt at zero rounds produced no shot and left ammunition at zero.
+- Reload began with 27/90 rounds and completed at 30/87 after the configured delay. A separate R-key input test reloaded an empty magazine from 0/90 to 30/60.
+- On a target hit, the muzzle flash, hit marker, impact effect, and AudioSource were active. A W-key movement check moved the player from x = -10.00 to x = -7.86; M1 movement remained available.
+- The gunfire and reload clips were assigned and played through the AudioSource. Audible quality, long-session feel, and all keyboard/mouse combinations still need a human Game view test.
 
-## Human play test
+## Manual play test
 
-Open `Assets/Scenes/FirstPersonTest.unity` and press Play. Click the Game view if it does not have focus. Move with WASD, hold Left Shift to sprint, press Space to jump, and move the mouse to look. Walk through both doorways into room 3, then backtrack; try walking into walls and obstacles and jumping again before landing. Press Escape to release the cursor, then click the Game view to capture it again.
+Open `Assets/Scenes/FirstPersonTest.unity` in Unity and press Play. Click the Game view to capture the cursor. Use WASD, mouse look, Shift, and Space as before. Aim the center crosshair at a teal target and click; hold left click to fire automatically. Watch the ammo counter, target flash, hit confirmation, impact, and muzzle flash; listen for gunfire and impacts. Empty the magazine and verify holding fire stops. Press R and verify the magazine refills from reserve after the reload sound and delay. Destroy a target with three hits, wait about four seconds for it to reappear, then shoot it again. Press Escape to release the cursor.
 
 ## Existing Git change to preserve
 
-`ProjectSettings/ProjectSettings.asset` still has an uncommitted cloud project, organization, and project-name edit predating M1. Its cloud association needs owner confirmation before it is committed. Keep it out of the M1 PR and do not discard it.
+`ProjectSettings/ProjectSettings.asset` has an older uncommitted cloud project, organization, and project-name edit. Its cloud association still needs owner confirmation before committing. Keep it out of the M2 PR and do not discard it.
 
 ## Next milestone
 
-Review and approve M1 after the human play test. Then begin M2, the two-player online foundation, only after separately validating package compatibility, service setup, ownership, and any costs. An eligible human reviewer is still needed for ordinary protected-branch PR approval.
+Review and merge M2 only with the project owner's approval and required human review. Next, validate package compatibility, service setup, ownership, and any costs before the two-player online foundation. No online packages or paid services were introduced in M2.
