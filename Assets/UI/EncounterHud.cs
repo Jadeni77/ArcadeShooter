@@ -34,7 +34,8 @@ namespace ArcadeShooter.UI
         private void OnZoneChanged(DangerZone zone)
         {
             if (zone.State == DangerZone.ZoneState.Warning ||
-                zone.State == DangerZone.ZoneState.Cleared || displayedZone == null)
+                zone.State == DangerZone.ZoneState.Cleared ||
+                zone.State == DangerZone.ZoneState.Failed || displayedZone == null)
             {
                 displayedZone = zone;
                 if (clearNotice != null) StopCoroutine(clearNotice);
@@ -82,6 +83,11 @@ namespace ArcadeShooter.UI
                     break;
                 case DangerZone.ZoneState.Cleared:
                     noticeText.text = $"{displayedZone.ZoneName} — AREA CLEARED";
+                    noticeText.enabled = true;
+                    progressText.enabled = false;
+                    break;
+                case DangerZone.ZoneState.Failed:
+                    noticeText.text = $"{displayedZone.ZoneName} — ALL PLAYERS DOWN";
                     noticeText.enabled = true;
                     progressText.enabled = false;
                     break;

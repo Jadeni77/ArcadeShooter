@@ -1,12 +1,22 @@
 # Technical architecture
 
-This document separates observed project state from proposed implementation. Proposals are not installed or implemented by this document.
+This document records the current implementation and preserves the earlier planning baseline below it.
 
 ## Version control and delivery
 
 `develop` is the staging branch and the base for feature and normal fix PRs. Approved releases move from `develop` to `main` by PR; urgent production hotfixes start from `main` and are brought back into `develop` by PR. `main` and `develop` receive no direct commits or pushes after the approved bootstrap. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for branch names, reviews, checks, and the pending repository setup. This workflow governs delivery; it does not change the gameplay architecture below.
 
-## Confirmed project baseline
+## M5 online implementation
+
+Unity 6000.6.5f1 uses Netcode for GameObjects 2.13.3, Multiplayer Services 2.4.0, and Multiplayer Play Mode 3.0.0. `MainMenu` is the first build scene; the host starts `FirstPersonTest` through NGO scene management. `MultiplayerSessionController` initializes Unity Services, signs in anonymously with a per-process profile, creates a private four-player Session backed by Relay, joins by code, locks the lobby before starting, and ends the session when the host leaves. It rejects connections after the match begins. See [MULTIPLAYER_TESTING.md](MULTIPLAYER_TESTING.md) for service setup and test steps.
+
+The `FirstPersonPlayer` network prefab is instantiated for each connection. Its owner alone reads Input System actions, drives its `CharacterController`, camera, first-person weapon, and local HUD. `OwnerNetworkTransform` replicates owner movement and yaw. Other players see an interpolated placeholder capsule; their cameras, input, first-person weapon, and HUD remain disabled. Each player has independent networked health and ammunition. The host receives a shot direction, checks health, match state, ammunition, reload state, fire interval, direction length and yaw cone, then raycasts and applies damage. The client plays immediate local firing effects; the host confirms hits and broadcasts basic remote shot feedback. Owner-controlled movement is currently trusted, so speed/teleport prevention is outside this milestone.
+
+The host alone runs `MeleeEnemy` AI, selects the nearest living in-match player, moves its NavMeshAgent, chooses attacks, and changes player/enemy/target health. Enemy movement, health, and death replicate to clients. The host also receives zone triggers, advances `DangerZone` state and wave counters, and spawns registered enemy network prefabs. A zone stays active when a player exits and fails only when every connected player is dead. Scene and prefab serialization is maintained by `ArcadeShooter > Configure Online Multiplayer Scenes`; do not rerun the older M1–M4 scene generators on the online scene without intentionally rebuilding subsequent content.
+
+The host has gameplay authority, but the host player is also a player and has the same local input path. This is a player-hosted prototype: host migration, late join, reconnect, dedicated servers, and production anti-cheat are deferred. Two-client observation remains required before claiming the online acceptance criteria are verified.
+
+## Pre-M5 baseline (historical)
 
 | Area | Observed state |
 | --- | --- |
@@ -19,7 +29,7 @@ This document separates observed project state from proposed implementation. Pro
 | Online packages | `com.unity.netcode.gameobjects` and `com.unity.services.multiplayer` are not in `Packages/manifest.json`. `com.unity.pipeline` is installed for Unity CLI Editor control; it is not the gameplay networking stack. |
 | Platform | macOS is the first development and test target; Windows is a later compatibility goal. |
 
-## Proposed implementation boundaries
+## Pre-M5 implementation plan (historical)
 
 | System | Proposed responsibility | Validation needed |
 | --- | --- | --- |
@@ -38,7 +48,7 @@ The session API is proposed because Unity documents it as the unified route for 
 
 The M1 test map is separate from the starter scene. The Editor menu command `ArcadeShooter > Build First-Person Test Scene` replaces the original prefab and graybox and would remove later milestone content. After an intentional regeneration, run `ArcadeShooter > Add Weapon Shooting Test Content`, then `ArcadeShooter > Add Enemy Combat Test Content`, then `ArcadeShooter > Add Danger Zone Test Content`. The M3 command updates the existing player prefab and graybox through Editor APIs, creates the enemy prefab and saved NavMesh data, and places three enemies without removing targets. The M4 command adds two zones and an encounter HUD, and disables the original room-two and room-three enemy instances while retaining them in the scene.
 
-## Suggested flow for the first online slice
+## Earlier suggested flow for the first online slice (historical)
 
 1. Initialize Unity services and authenticate players as required by the installed SDK.
 2. Host creates a session for two players and shares a join code; the second player joins.
