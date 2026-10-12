@@ -193,6 +193,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3580995616346529861}
+  - component: {fileID: 1546398441614933851}
   m_Layer: 0
   m_Name: Assault Rifle Placeholder
   m_TagString: Untagged
@@ -222,6 +223,23 @@ Transform:
   - {fileID: 5280163867841713556}
   m_Father: {fileID: 4346475736911304199}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1546398441614933851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1302808596937172504}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 06ccdca5dc01443bc89415e8ce96876a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Combat.WeaponViewModel
+  rifle: {fileID: 631336858395976458}
+  recoilDistance: 0.07
+  recoilRecovery: 12
+  reloadLowerDistance: 0.22
+  reloadTilt: {x: 15, y: 0, z: -8}
 --- !u!1 &1340756408198240110
 GameObject:
   m_ObjectHideFlags: 0
@@ -1386,14 +1404,9 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   aimCamera: {fileID: 6973904937506727053}
-  weaponModel: {fileID: 3580995616346529861}
   muzzleFlash: {fileID: 6593105417430077523}
   impactPrefab: {fileID: 2071877782007749828, guid: 65418e87c83424e359ce4251a3b6e607, type: 3}
   hud: {fileID: 5447685652604179520}
-  recoilDistance: 0.07
-  recoilRecovery: 12
-  reloadLowerDistance: 0.22
-  reloadTilt: {x: 15, y: 0, z: -8}
   flashDuration: 0.055
   gunfireSound: {fileID: 8300000, guid: 78c7cd8c52277454186e121ba0512383, type: 3}
   impactSound: {fileID: 8300000, guid: 351f863a36b8e488f878dc5016c24e99, type: 3}
@@ -1465,8 +1478,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 30 / 90
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 0}
-  m_sharedMaterial: {fileID: 0}
+  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1513,13 +1526,13 @@ MonoBehaviour:
   m_linkedTextComponent: {fileID: 0}
   parentLinkedComponent: {fileID: 0}
   m_enableKerning: 0
-  m_ActiveFontFeatures: 00000000u
+  m_ActiveFontFeatures: 
   m_enableExtraPadding: 0
   checkPaddingRequired: 0
   m_isRichText: 1
   m_EmojiFallbackSupport: 1
   m_parseCtrlCharacters: 1
-  m_isOrthographic: 0
+  m_isOrthographic: 1
   m_isCullingEnabled: 0
   m_horizontalMapping: 0
   m_verticalMapping: 0

@@ -1,9 +1,12 @@
+using System;
 using ArcadeShooter.UI;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 namespace ArcadeShooter.Combat
 {
+    // Owns ammo, fire timing, reload timing, and hits. Reloads finish on this timer alone;
+    // view-model animation such as WeaponViewModel only observes this state.
     [RequireComponent(typeof(PlayerInput), typeof(AudioSource))]
     public sealed class AutomaticRifle : MonoBehaviour
     {
@@ -18,16 +21,11 @@ namespace ArcadeShooter.Combat
 
         [Header("Scene references")]
         [SerializeField] private Camera aimCamera;
-        [SerializeField] private Transform weaponModel;
         [SerializeField] private GameObject muzzleFlash;
         [SerializeField] private GameObject impactPrefab;
         [SerializeField] private WeaponHud hud;
 
         [Header("Feedback")]
-        [SerializeField, Min(0f)] private float recoilDistance = 0.07f;
-        [SerializeField, Min(0f)] private float recoilRecovery = 12f;
-        [SerializeField, Min(0f)] private float reloadLowerDistance = 0.22f;
-        [SerializeField] private Vector3 reloadTilt = new Vector3(15f, 0f, -8f);
         [SerializeField, Min(0f)] private float flashDuration = 0.055f;
         [SerializeField] private AudioClip gunfireSound;
         [SerializeField] private AudioClip impactSound;
@@ -36,10 +34,6 @@ namespace ArcadeShooter.Combat
         private InputAction attackAction;
         private InputAction reloadAction;
         private AudioSource audioSource;
-        private Vector3 restingPosition;
-        private Quaternion restingRotation;
-        private bool poseInitialized;
-        private float recoilOffset;
         private int magazine;
         private int reserve;
         private float nextShotAt;
@@ -51,6 +45,12 @@ namespace ArcadeShooter.Combat
         public int Magazine => magazine;
         public int Reserve => reserve;
         public bool IsReloading => reloading;
+        // 0 at reload start to 1 when the magazine refills; 0 when not reloading.
+        public float ReloadProgress =>
+            reloading ? Mathf.Clamp01((Time.time - reloadStartedAt) / reloadDuration) : 0f;
+
+        // Raised after each shot's gameplay effects have been applied.
+        public event Action Fired;
 
         private void Awake()
         {
@@ -60,12 +60,6 @@ namespace ArcadeShooter.Combat
             audioSource = GetComponent<AudioSource>();
             if (aimCamera == null)
                 Debug.LogError("AutomaticRifle needs an aim camera.", this);
-            if (weaponModel != null)
-            {
-                restingPosition = weaponModel.localPosition;
-                restingRotation = weaponModel.localRotation;
-                poseInitialized = true;
-            }
             magazine = magazineSize;
             reserve = startingReserve;
             if (muzzleFlash != null)
@@ -86,7 +80,6 @@ namespace ArcadeShooter.Combat
 
             if (muzzleFlash != null && muzzleFlash.activeSelf && Time.time >= flashEndsAt)
                 muzzleFlash.SetActive(false);
-            UpdateWeaponPose();
         }
 
         private bool TryFire()
@@ -101,7 +94,6 @@ namespace ArcadeShooter.Combat
 
             magazine--;
             nextShotAt = Time.time + 1f / roundsPerSecond;
-            recoilOffset = recoilDistance;
             if (muzzleFlash != null)
             {
                 muzzleFlash.SetActive(true);
@@ -123,6 +115,7 @@ namespace ArcadeShooter.Combat
             if (magazine == 0)
                 BeginReload();
             RefreshHud();
+            Fired?.Invoke();
             return true;
         }
 
@@ -133,7 +126,6 @@ namespace ArcadeShooter.Combat
             reloading = true;
             reloadStartedAt = Time.time;
             reloadEndsAt = reloadStartedAt + reloadDuration;
-            recoilOffset = 0f;
             Play(reloadSound);
             RefreshHud();
         }
@@ -151,36 +143,6 @@ namespace ArcadeShooter.Combat
         {
             if (clip != null)
                 audioSource.PlayOneShot(clip);
-        }
-
-        private void UpdateWeaponPose()
-        {
-            if (weaponModel == null)
-                return;
-
-            recoilOffset = Mathf.Lerp(recoilOffset, 0f,
-                1f - Mathf.Exp(-recoilRecovery * Time.deltaTime));
-
-            float reloadPose = 0f;
-            if (reloading)
-            {
-                float progress = Mathf.Clamp01((Time.time - reloadStartedAt) / reloadDuration);
-                float lower = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(progress / 0.25f));
-                float raise = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((progress - 0.65f) / 0.35f));
-                reloadPose = lower * (1f - raise);
-            }
-
-            weaponModel.localPosition = restingPosition - Vector3.forward * recoilOffset
-                + Vector3.down * (reloadLowerDistance * reloadPose);
-            weaponModel.localRotation = restingRotation * Quaternion.Euler(reloadTilt * reloadPose);
-        }
-
-        private void OnDisable()
-        {
-            if (!poseInitialized || weaponModel == null)
-                return;
-            weaponModel.localPosition = restingPosition;
-            weaponModel.localRotation = restingRotation;
         }
 
         private void RefreshHud() => hud?.SetAmmo(magazine, reserve, reloading);
