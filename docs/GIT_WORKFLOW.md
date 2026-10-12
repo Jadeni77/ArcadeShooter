@@ -1,6 +1,6 @@
 # Git branching and pull-request workflow
 
-This is the project owner's required workflow. `develop` has been created and made the GitHub default branch. The bootstrap PR is still pending. GitHub branch protection and rulesets are unavailable for this private repository on its current plan, so the written PR policy remains mandatory even though GitHub cannot yet enforce it.
+This is the project owner's required workflow. `develop` has been created and made the GitHub default branch. [Bootstrap PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1) is open as a draft against `develop`. GitHub branch protection and rulesets are unavailable for this private repository on its current plan, so the written PR policy remains mandatory even though GitHub cannot yet enforce it.
 
 ## Branch roles and PR routes
 
@@ -46,7 +46,7 @@ The live remote was verified before mutation: `main` was the only remote branch 
 2. **Done:** Change the GitHub default branch from `main` to `develop`.
 3. **Unavailable on current plan:** Enable branch protection/rulesets for `main` and `develop`. Revisit this if the repository becomes public or the plan changes, and if an eligible second human reviewer is added. Required CI checks can be added once a workflow exists and reports stable check names.
 4. **In progress:** Commit `80cbda0` recorded the one-time Unity helper deletion, resolved lockfile, and quality serialization update on `feature/repository-bootstrap`. The project documents are included on this branch. `ProjectSettings/ProjectSettings.asset` remains uncommitted while its cloud project and organization fields await confirmation.
-5. **Pending:** Open `feature/repository-bootstrap` → `develop`. Review the complete diff and verify Unity import/compilation as practical. Merge only after explicit project-owner approval; Codex must never merge on its own.
+5. **Open for review:** Draft [PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1) targets `develop` from `feature/repository-bootstrap`. Review the complete diff and verify Unity import/compilation as practical. Merge only after explicit project-owner approval; Codex must never merge on its own.
 6. **Future:** Keep `main` at its historical initial commit until a tested, explicitly approved release is ready. Promote that release through a `develop` → `main` PR. Do not call the initial scaffold a stable production release.
 
 This document is a policy and status record; it does not authorize any later merge, force push, repository visibility change, or paid-plan change.

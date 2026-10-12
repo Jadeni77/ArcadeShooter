@@ -9,7 +9,7 @@ Last reviewed: 2026-10-11 (America/New_York). This is a snapshot; inspect `git s
 - The Unity starter project has one enabled scene, `Assets/Scenes/SampleScene.unity`, an Input System actions asset, and template/readme scripts. There is no first-person controller, gun, enemy, mission flow, or online gameplay.
 - Input System and AI Navigation are installed. Netcode for GameObjects and Unity Multiplayer Services are proposed but not installed. `com.unity.pipeline@0.8.0-exp.1` supports Unity CLI Editor control.
 - The existing Unity Editor log showed successful package resolution and script compilation. This task did not rerun the Editor, a build, or gameplay tests.
-- Git workflow is documented in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). `develop` has been published and set as GitHub's default branch; the bootstrap feature branch is active.
+- Git workflow is documented in [GIT_WORKFLOW.md](GIT_WORKFLOW.md). `develop` is GitHub's default branch, and draft [bootstrap PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1) is open from the feature branch into `develop`. It has not been merged.
 
 ## Existing Git changes to preserve
 
@@ -37,4 +37,4 @@ The active local branch is `feature/repository-bootstrap`. `main`, `develop`, `o
 
 ## Next milestone
 
-**Finish the repository bootstrap PR without merging it**, then **M1 — first-person exploration.** See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for the branch and PR plan and [ROADMAP.md](ROADMAP.md) for the first gameplay acceptance criteria. Multiplayer and combat wait for their own milestones.
+**Review bootstrap PR #1 and decide how to handle the uncommitted cloud settings and unavailable GitHub protections**, then **M1 — first-person exploration** after the bootstrap is approved and merged by the project owner. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for the PR policy and [ROADMAP.md](ROADMAP.md) for the first gameplay acceptance criteria.
