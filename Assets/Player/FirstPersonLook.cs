@@ -30,14 +30,16 @@ namespace ArcadeShooter.Player
         private void Update()
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-                UnlockCursor();
-
-            if (Cursor.lockState != CursorLockMode.Locked)
             {
-                if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                if (Cursor.lockState == CursorLockMode.Locked)
+                    UnlockCursor();
+                else
                     LockCursor();
                 return;
             }
+
+            if (Cursor.lockState != CursorLockMode.Locked)
+                return;
 
             if (cameraPivot == null)
                 return;

@@ -82,10 +82,10 @@ namespace ArcadeShooter.Combat
             if (reloading && Time.time >= reloadEndsAt)
                 CompleteReload();
 
-            if (reloadAction.WasPressedThisFrame())
+            if (Cursor.lockState == CursorLockMode.Locked && reloadAction.WasPressedThisFrame())
                 BeginReload();
 
-            if (attackAction.IsPressed())
+            if (Cursor.lockState == CursorLockMode.Locked && attackAction.IsPressed())
                 TryFire();
 
             if (muzzleFlash != null && muzzleFlash.activeSelf && Time.time >= flashEndsAt)

@@ -37,6 +37,7 @@ namespace ArcadeShooter.Networking
         private string status = "Host a game or enter a join code.";
         private float nextRefresh;
         private static string menuReturnStatus;
+        private const string MatchStatus = "Match started. Press Esc to use Leave Game; press Esc again to aim.";
 
         private void Awake()
         {
@@ -199,7 +200,7 @@ namespace ArcadeShooter.Networking
                 player.BeginMatchRpc(position);
                 index++;
             }
-            status = "Match started.";
+            status = MatchStatus;
             Refresh();
         }
 
@@ -291,7 +292,7 @@ namespace ArcadeShooter.Networking
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             if (scene.name == "FirstPersonTest" && session != null)
-                status = "Match started.";
+                status = MatchStatus;
             if (menuCamera != null)
             {
                 bool inMenu = scene.name == "MainMenu";
