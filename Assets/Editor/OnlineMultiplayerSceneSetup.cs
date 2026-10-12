@@ -140,12 +140,23 @@ namespace ArcadeShooter.Editor
 
         private static void ConfigureMenu()
         {
+            GameObject playerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
+            NetworkPrefabsList prefabs = AssetDatabase.LoadAssetAtPath<NetworkPrefabsList>(
+                "Assets/DefaultNetworkPrefabs.asset");
+            if (playerPrefab == null || prefabs == null)
+                throw new System.InvalidOperationException(
+                    "The network player prefab or DefaultNetworkPrefabs asset is missing.");
+
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             GameObject system = new GameObject("Multiplayer System");
             UnityTransport transport = system.AddComponent<UnityTransport>();
             NetworkManager manager = system.AddComponent<NetworkManager>();
+            if (manager.NetworkConfig == null)
+                manager.NetworkConfig = new NetworkConfig();
             manager.NetworkConfig.NetworkTransport = transport;
-            manager.NetworkConfig.PlayerPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPath);
+            manager.NetworkConfig.PlayerPrefab = playerPrefab;
+            if (!manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Contains(prefabs))
+                manager.NetworkConfig.Prefabs.NetworkPrefabsLists.Add(prefabs);
             manager.NetworkConfig.EnableSceneManagement = true;
             manager.NetworkConfig.ConnectionApproval = true;
 
