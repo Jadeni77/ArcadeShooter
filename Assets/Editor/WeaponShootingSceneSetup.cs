@@ -81,7 +81,6 @@ namespace ArcadeShooter.Editor
                 AutomaticRifle weapon = root.AddComponent<AutomaticRifle>();
                 SerializedObject serialized = new SerializedObject(weapon);
                 serialized.FindProperty("aimCamera").objectReferenceValue = camera;
-                serialized.FindProperty("weaponModel").objectReferenceValue = model.transform;
                 serialized.FindProperty("muzzleFlash").objectReferenceValue = muzzle;
                 serialized.FindProperty("impactPrefab").objectReferenceValue = impact;
                 serialized.FindProperty("hud").objectReferenceValue = hud;
@@ -89,6 +88,9 @@ namespace ArcadeShooter.Editor
                 serialized.FindProperty("impactSound").objectReferenceValue = Audio("Assets/Audio/Impact.wav");
                 serialized.FindProperty("reloadSound").objectReferenceValue = Audio("Assets/Audio/Reload.wav");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
+                SerializedObject view = new SerializedObject(model.AddComponent<WeaponViewModel>());
+                view.FindProperty("rifle").objectReferenceValue = weapon;
+                view.ApplyModifiedPropertiesWithoutUndo();
                 PrefabUtility.SaveAsPrefabAsset(root, PlayerPath);
             }
             finally
