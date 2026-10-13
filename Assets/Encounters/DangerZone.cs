@@ -1,14 +1,15 @@
 using System;
 using System.Collections;
 using ArcadeShooter.Player;
+using Unity.Netcode;
 using UnityEngine;
 
 namespace ArcadeShooter.Encounters
 {
     [RequireComponent(typeof(BoxCollider), typeof(EnemyWaveSpawner))]
-    public sealed class DangerZone : MonoBehaviour
+    public sealed class DangerZone : NetworkBehaviour
     {
-        public enum ZoneState { Inactive, Warning, Active, Cleared }
+        public enum ZoneState { Inactive, Warning, Active, Cleared, Failed }
 
         [SerializeField] private string zoneName = "Danger Zone";
         [SerializeField] private string warningMessage = "HOSTILES INCOMING!";
@@ -18,18 +19,18 @@ namespace ArcadeShooter.Encounters
         [SerializeField] private AudioSource audioSource;
 
         private EnemyWaveSpawner spawner;
-        private PlayerHealth activatingPlayer;
         private Coroutine pendingWave;
-        private bool progressionStopped;
-        private int currentWave;
+        private readonly NetworkVariable<int> state = new NetworkVariable<int>((int)ZoneState.Inactive);
+        private readonly NetworkVariable<int> currentWave = new NetworkVariable<int>();
+        private readonly NetworkVariable<int> remainingEnemies = new NetworkVariable<int>();
 
         public string ZoneName => zoneName;
         public string WarningMessage => warningMessage;
-        public int CurrentWave => currentWave;
+        public int CurrentWave => currentWave.Value;
         public int TotalWaves => spawner != null ? spawner.WaveCount : 0;
-        public int RemainingEnemies => spawner != null ? spawner.RemainingEnemies : 0;
-        public ZoneState State { get; private set; } = ZoneState.Inactive;
-        public bool IsStopped => progressionStopped;
+        public int RemainingEnemies => remainingEnemies.Value;
+        public ZoneState State => (ZoneState)state.Value;
+        public bool IsStopped => State == ZoneState.Failed;
         public event Action<DangerZone> Changed;
 
         private void Awake()
@@ -49,7 +50,35 @@ namespace ArcadeShooter.Encounters
         {
             spawner.RemainingChanged -= OnRemainingChanged;
             spawner.WaveCompleted -= OnWaveCompleted;
-            if (activatingPlayer != null) activatingPlayer.Died -= OnPlayerDied;
+            if (pendingWave != null) StopCoroutine(pendingWave);
+            pendingWave = null;
+            if (spawner != null) spawner.StopTracking();
+        }
+
+        public override void OnNetworkSpawn()
+        {
+            state.OnValueChanged += OnStateChanged;
+            currentWave.OnValueChanged += OnIntegerChanged;
+            remainingEnemies.OnValueChanged += OnIntegerChanged;
+            Changed?.Invoke(this);
+        }
+
+        public override void OnNetworkDespawn()
+        {
+            state.OnValueChanged -= OnStateChanged;
+            currentWave.OnValueChanged -= OnIntegerChanged;
+            remainingEnemies.OnValueChanged -= OnIntegerChanged;
+        }
+
+        private void OnStateChanged(int previous, int current) => Changed?.Invoke(this);
+        private void OnIntegerChanged(int previous, int current) => Changed?.Invoke(this);
+
+        private void Update()
+        {
+            if (!IsSpawned || !IsServer ||
+                (State != ZoneState.Warning && State != ZoneState.Active)) return;
+            if (FindLivingPlayer() != null) return;
+            state.Value = (int)ZoneState.Failed;
             if (pendingWave != null) StopCoroutine(pendingWave);
             pendingWave = null;
             spawner.StopTracking();
@@ -57,18 +86,16 @@ namespace ArcadeShooter.Encounters
 
         private void OnTriggerEnter(Collider other)
         {
-            if (State != ZoneState.Inactive || !(other is CharacterController)) return;
+            if (!IsSpawned || !IsServer || State != ZoneState.Inactive ||
+                !(other is CharacterController)) return;
             PlayerHealth player = other.GetComponent<PlayerHealth>();
             if (player == null || player.IsDead) return;
-            Activate(player);
+            Activate();
         }
 
-        private void Activate(PlayerHealth player)
+        private void Activate()
         {
-            activatingPlayer = player;
-            player.Died += OnPlayerDied;
-            State = ZoneState.Warning;
-            Changed?.Invoke(this);
+            state.Value = (int)ZoneState.Warning;
             Play(warningSound);
             pendingWave = StartCoroutine(StartAfterDelay(warningDuration, 0));
         }
@@ -77,46 +104,41 @@ namespace ArcadeShooter.Encounters
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
             pendingWave = null;
-            if (progressionStopped || State == ZoneState.Cleared) yield break;
-            if (!spawner.TrySpawnWave(waveIndex, activatingPlayer.transform))
+            if (State == ZoneState.Failed || State == ZoneState.Cleared) yield break;
+            PlayerHealth player = FindLivingPlayer();
+            if (player == null || !spawner.TrySpawnWave(waveIndex, player.transform))
             {
-                progressionStopped = true;
+                state.Value = (int)ZoneState.Failed;
                 Debug.LogError($"{name}: encounter stopped because wave {waveIndex + 1} could not spawn.", this);
-                Changed?.Invoke(this);
                 yield break;
             }
-            currentWave = waveIndex + 1;
-            State = ZoneState.Active;
-            Changed?.Invoke(this);
+            currentWave.Value = waveIndex + 1;
+            state.Value = (int)ZoneState.Active;
         }
 
         private void OnRemainingChanged(int count)
         {
-            if (!progressionStopped) Changed?.Invoke(this);
+            if (IsServer) remainingEnemies.Value = count;
         }
 
         private void OnWaveCompleted()
         {
-            if (progressionStopped || State != ZoneState.Active) return;
-            if (currentWave >= spawner.WaveCount)
+            if (!IsServer || State != ZoneState.Active) return;
+            if (CurrentWave >= spawner.WaveCount)
             {
-                State = ZoneState.Cleared;
-                activatingPlayer.Died -= OnPlayerDied;
+                state.Value = (int)ZoneState.Cleared;
                 Play(clearSound);
-                Changed?.Invoke(this);
                 return;
             }
-            pendingWave = StartCoroutine(StartAfterDelay(spawner.DelayBeforeWave(currentWave), currentWave));
-            Changed?.Invoke(this);
+            pendingWave = StartCoroutine(StartAfterDelay(spawner.DelayBeforeWave(CurrentWave), CurrentWave));
         }
 
-        private void OnPlayerDied()
+        private static PlayerHealth FindLivingPlayer()
         {
-            progressionStopped = true;
-            if (pendingWave != null) StopCoroutine(pendingWave);
-            pendingWave = null;
-            spawner.StopTracking();
-            Changed?.Invoke(this);
+            foreach (PlayerHealth player in FindObjectsByType<PlayerHealth>())
+                if (!player.IsDead && player.GetComponent<ArcadeShooter.Networking.NetworkPlayer>().InMatch)
+                    return player;
+            return null;
         }
 
         private void Play(AudioClip clip)

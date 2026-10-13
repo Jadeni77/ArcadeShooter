@@ -1,5 +1,6 @@
 using System;
 using ArcadeShooter.Player;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -22,6 +23,7 @@ namespace ArcadeShooter.Enemies
 
         private NavMeshAgent agent;
         private EnemyHealth health;
+        private NetworkObject networkObject;
         private PlayerHealth target;
         private float nextRepathAt;
         private float nextScanAt;
@@ -33,6 +35,7 @@ namespace ArcadeShooter.Enemies
         {
             agent = GetComponent<NavMeshAgent>();
             health = GetComponent<EnemyHealth>();
+            networkObject = GetComponent<NetworkObject>();
             agent.speed = movementSpeed;
             agent.stoppingDistance = Mathf.Max(0.1f, attackRange * 0.75f);
             health.Died += Die;
@@ -43,10 +46,20 @@ namespace ArcadeShooter.Enemies
             if (health != null) health.Died -= Die;
         }
 
+        private void Start()
+        {
+            // NetworkTransform renders the host's movement on clients.
+            if (networkObject != null && networkObject.IsSpawned &&
+                NetworkManager.Singleton != null && !NetworkManager.Singleton.IsServer)
+                agent.enabled = false;
+        }
+
         private void Update()
         {
+            if (networkObject == null || !networkObject.IsSpawned ||
+                NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
             if (CurrentState == State.Dead) return;
-            if ((target == null || target.IsDead) && Time.time >= nextScanAt)
+            if (Time.time >= nextScanAt)
             {
                 target = FindClosestLivingPlayer();
                 nextScanAt = Time.time + repathInterval;
@@ -87,6 +100,9 @@ namespace ArcadeShooter.Enemies
             foreach (PlayerHealth candidate in FindObjectsByType<PlayerHealth>())
             {
                 if (candidate.IsDead) continue;
+                NetworkObject networkObject = candidate.GetComponent<NetworkObject>();
+                if (networkObject == null || !networkObject.IsSpawned ||
+                    !candidate.GetComponent<ArcadeShooter.Networking.NetworkPlayer>().InMatch) continue;
                 float sqrDistance = (candidate.transform.position - transform.position).sqrMagnitude;
                 if (sqrDistance > bestDistance) continue;
                 bestDistance = sqrDistance;

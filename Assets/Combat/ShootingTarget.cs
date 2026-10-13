@@ -1,9 +1,10 @@
 using UnityEngine;
+using Unity.Netcode;
 
 namespace ArcadeShooter.Combat
 {
     [RequireComponent(typeof(Collider))]
-    public sealed class ShootingTarget : MonoBehaviour, IDamageable
+    public sealed class ShootingTarget : NetworkBehaviour, IDamageable
     {
         [SerializeField, Min(1f)] private float maxHealth = 60f;
         [SerializeField, Min(0.1f)] private float resetDelay = 4f;
@@ -12,12 +13,11 @@ namespace ArcadeShooter.Combat
 
         private Collider targetCollider;
         private MaterialPropertyBlock properties;
-        private float health;
+        private readonly NetworkVariable<float> health = new NetworkVariable<float>(60f);
         private float resetAt;
         private float flashUntil;
-        private bool destroyed;
 
-        public float Health => health;
+        public float Health => health.Value;
         public float MaxHealth => maxHealth;
 
         private void Awake()
@@ -26,14 +26,22 @@ namespace ArcadeShooter.Combat
             if (targetRenderer == null)
                 targetRenderer = GetComponent<Renderer>();
             properties = new MaterialPropertyBlock();
-            ResetTarget();
         }
+
+        public override void OnNetworkSpawn()
+        {
+            health.OnValueChanged += OnHealthChanged;
+            if (IsServer) health.Value = maxHealth;
+            ApplyVisual();
+        }
+
+        public override void OnNetworkDespawn() => health.OnValueChanged -= OnHealthChanged;
 
         private void Update()
         {
-            if (destroyed && Time.time >= resetAt)
+            if (IsSpawned && IsServer && Health <= 0f && Time.time >= resetAt)
                 ResetTarget();
-            else if (!destroyed && flashUntil > 0f && Time.time >= flashUntil)
+            else if (Health > 0f && flashUntil > 0f && Time.time >= flashUntil)
             {
                 flashUntil = 0f;
                 targetRenderer?.SetPropertyBlock(null);
@@ -42,34 +50,38 @@ namespace ArcadeShooter.Combat
 
         public bool ApplyDamage(float amount, Vector3 hitPoint)
         {
-            if (destroyed || amount <= 0f)
+            if (!IsServer || Health <= 0f || amount <= 0f)
                 return false;
 
-            health = Mathf.Max(0f, health - amount);
-            if (health <= 0f)
-            {
-                destroyed = true;
-                targetCollider.enabled = false;
-                if (targetRenderer != null)
-                    targetRenderer.enabled = false;
+            health.Value = Mathf.Max(0f, Health - amount);
+            return true;
+        }
+
+        private void OnHealthChanged(float previous, float current)
+        {
+            if (current < previous && current <= 0f && IsServer)
                 resetAt = Time.time + resetDelay;
-            }
-            else if (targetRenderer != null)
+            ApplyVisual();
+        }
+
+        private void ApplyVisual()
+        {
+            bool destroyed = Health <= 0f;
+            if (targetCollider != null) targetCollider.enabled = !destroyed;
+            if (targetRenderer != null) targetRenderer.enabled = !destroyed;
+            if (!destroyed && targetRenderer != null && Health < maxHealth)
             {
-                if (properties == null)
-                    properties = new MaterialPropertyBlock();
                 properties.SetColor("_BaseColor", damagedColor);
                 targetRenderer.SetPropertyBlock(properties);
                 flashUntil = Time.time + 0.12f;
             }
-            return true;
         }
 
         [ContextMenu("Reset Target")]
         public void ResetTarget()
         {
-            health = maxHealth;
-            destroyed = false;
+            if (Application.isPlaying && !IsServer) return;
+            health.Value = maxHealth;
             resetAt = 0f;
             flashUntil = 0f;
             if (targetCollider == null)

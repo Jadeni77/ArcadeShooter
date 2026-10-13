@@ -19,13 +19,16 @@ Use this file to distinguish decisions the project owner has made from technical
 | D-011 | 2026-10-11: For the owner-requested M2, build a local hitscan automatic rifle and resettable damage targets before the online foundation. R reloads from a finite reserve after a timed delay. | Proves the shooting loop in the existing map without installing network packages or services. Host authority and synchronization remain for a later milestone. |
 | D-012 | 2026-10-12: Build local enemy AI and player combat as M3 before the online foundation. Use the installed AI Navigation package, the existing `IDamageable` seam, three placeholder enemies, and an R-key test reset after player death. | Proves detection, pathfinding, melee, rifle damage, and health in the graybox without adding networking. The reset is only for testing; teammate revive and host authority remain later work. |
 | D-013 | 2026-10-12: Build two local danger zones as M4 before the online foundation. Use serialized scene components for per-zone warning, waves, delays, and NavMesh spawn markers; reuse `EnemyHealth.Died` for completion. | Proves reusable room encounters without a second health system or networking package. The encounter state resets with the test scene; shared host authority remains for the later online slice. |
+| D-014 | 2026-10-12: Use NGO 2.13.3, Multiplayer Services Sessions 2.4.0 with Relay, and Multiplayer Play Mode 3.0.0 for the M5 join-code prototype. | Supported packages installed on Unity 6000.6.5f1. Private four-player sessions provide a small lobby and network connection without public matchmaking. Service use and billing must be reviewed in the Unity Dashboard before broader testing. |
+| D-015 | 2026-10-12: Player owners control their CharacterController, camera, and immediate weapon cosmetics; the host owns ammunition, final damage and health, AI, target state, and danger-zone progression. | Local controls stay responsive while consequential gameplay decisions are shared. The host checks shot cadence, ammo, alive state, and aim plausibility, but owner movement remains trusted in this prototype. |
+| D-016 | 2026-10-12: Join before match start; the host locks the session and loads the one test map. A host exit ends the session and returns clients to the menu. A dead player stays dead for the match; leaving and hosting again resets the test. | Keeps the first network loop bounded. Host migration, late joining, reconnect, revival, and advanced respawn await later milestones. |
 
 ## Proposed architecture, pending verification
 
 | Topic | Proposal | Why it is open |
 | --- | --- | --- |
-| Online stack | Add Netcode for GameObjects and the unified Unity Multiplayer Services package; use session create/join with a code for the first online slice. | Packages and online project setup are not installed/validated yet. |
-| Hosting | Start with a player-hosted match; the host owns enemy AI and important game state. | M5–M7 must test latency, disconnects, authority boundaries, and operating constraints. |
+| Online stack | Implemented in M5; see D-014. | Two-client functional behavior and Dashboard service settings still need verification. |
+| Hosting | Implemented in M5; see D-015 and D-016. | Two-client latency, disconnects, and operating constraints still need verification. |
 | Reuse | Use small mission, weapon, enemy, and encounter definitions where a second use case justifies them. | Avoid premature frameworks while preserving room for new content. |
 | Audio | Use AudioSource and an AudioMixer for weapons, enemies, ambience, music, and UI as the audio slice grows. | No game audio assets or mixer exist yet. |
 

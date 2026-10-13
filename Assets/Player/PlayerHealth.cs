@@ -1,19 +1,18 @@
 using System;
 using ArcadeShooter.Combat;
+using Unity.Netcode;
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.SceneManagement;
 
 namespace ArcadeShooter.Player
 {
-    // Local health for this test slice. A future host can own ApplyDamage and replicate Health.
-    public sealed class PlayerHealth : MonoBehaviour, IDamageable
+    public sealed class PlayerHealth : NetworkBehaviour, IDamageable
     {
         [SerializeField, Min(1f)] private float maxHealth = 100f;
         [SerializeField] private FirstPersonMovement movement;
         [SerializeField] private AutomaticRifle rifle;
 
-        public float Health { get; private set; }
+        private readonly NetworkVariable<float> health = new NetworkVariable<float>(100f);
+        public float Health => health.Value;
         public float MaxHealth => maxHealth;
         public bool IsDead => Health <= 0f;
         public event Action<float, float> HealthChanged;
@@ -23,36 +22,36 @@ namespace ArcadeShooter.Player
         {
             if (movement == null) movement = GetComponent<FirstPersonMovement>();
             if (rifle == null) rifle = GetComponent<AutomaticRifle>();
-            Health = maxHealth;
         }
 
-        private void Start() => HealthChanged?.Invoke(Health, maxHealth);
-
-        private void Update()
+        public override void OnNetworkSpawn()
         {
-            if (IsDead && Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
-                RestartTestScene();
+            health.OnValueChanged += OnHealthChanged;
+            if (IsServer) health.Value = maxHealth;
+            OnHealthChanged(maxHealth, health.Value);
         }
 
-        [ContextMenu("Restart Test Scene")]
-        public void RestartTestScene()
+        public override void OnNetworkDespawn()
         {
-            if (Application.isPlaying)
-                SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+            health.OnValueChanged -= OnHealthChanged;
         }
 
         public bool ApplyDamage(float amount, Vector3 hitPoint)
         {
-            if (IsDead || amount <= 0f) return false;
-            Health = Mathf.Max(0f, Health - amount);
-            HealthChanged?.Invoke(Health, maxHealth);
-            if (IsDead)
+            if (!IsServer || IsDead || amount <= 0f) return false;
+            health.Value = Mathf.Max(0f, Health - amount);
+            return true;
+        }
+
+        private void OnHealthChanged(float previous, float current)
+        {
+            HealthChanged?.Invoke(current, maxHealth);
+            if (current <= 0f && previous > 0f)
             {
                 if (rifle != null) rifle.enabled = false;
                 if (movement != null) movement.enabled = false;
                 Died?.Invoke();
             }
-            return true;
         }
 
         private void OnValidate() => maxHealth = Mathf.Max(1f, maxHealth);

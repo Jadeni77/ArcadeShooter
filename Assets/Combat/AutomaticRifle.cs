@@ -1,5 +1,6 @@
 using System;
 using ArcadeShooter.UI;
+using ArcadeShooter.Networking;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -41,9 +42,17 @@ namespace ArcadeShooter.Combat
         private float reloadEndsAt;
         private float flashEndsAt;
         private bool reloading;
+        private NetworkRifle networkRifle;
 
         public int Magazine => magazine;
         public int Reserve => reserve;
+        public int MagazineSize => magazineSize;
+        public int StartingReserve => startingReserve;
+        public float Damage => damage;
+        public float RoundsPerSecond => roundsPerSecond;
+        public float ReloadDuration => reloadDuration;
+        public float Range => range;
+        public LayerMask HitMask => hitMask;
         public bool IsReloading => reloading;
         // 0 at reload start to 1 when the magazine refills; 0 when not reloading.
         public float ReloadProgress =>
@@ -58,6 +67,7 @@ namespace ArcadeShooter.Combat
             attackAction = input.actions.FindAction("Attack", true);
             reloadAction = input.actions.FindAction("Reload", true);
             audioSource = GetComponent<AudioSource>();
+            networkRifle = GetComponent<NetworkRifle>();
             if (aimCamera == null)
                 Debug.LogError("AutomaticRifle needs an aim camera.", this);
             magazine = magazineSize;
@@ -72,10 +82,10 @@ namespace ArcadeShooter.Combat
             if (reloading && Time.time >= reloadEndsAt)
                 CompleteReload();
 
-            if (reloadAction.WasPressedThisFrame())
+            if (Cursor.lockState == CursorLockMode.Locked && reloadAction.WasPressedThisFrame())
                 BeginReload();
 
-            if (attackAction.IsPressed())
+            if (Cursor.lockState == CursorLockMode.Locked && attackAction.IsPressed())
                 TryFire();
 
             if (muzzleFlash != null && muzzleFlash.activeSelf && Time.time >= flashEndsAt)
@@ -102,7 +112,9 @@ namespace ArcadeShooter.Combat
             Play(gunfireSound);
 
             Ray ray = new Ray(aimCamera.transform.position, aimCamera.transform.forward);
-            if (Physics.Raycast(ray, out RaycastHit hit, range, hitMask, QueryTriggerInteraction.Ignore))
+            if (networkRifle != null)
+                networkRifle.RequestShot(ray.direction);
+            else if (Physics.Raycast(ray, out RaycastHit hit, range, hitMask, QueryTriggerInteraction.Ignore))
             {
                 if (impactPrefab != null)
                     Instantiate(impactPrefab, hit.point + hit.normal * 0.015f,
@@ -127,7 +139,28 @@ namespace ArcadeShooter.Combat
             reloadStartedAt = Time.time;
             reloadEndsAt = reloadStartedAt + reloadDuration;
             Play(reloadSound);
+            if (networkRifle != null) networkRifle.RequestReload();
             RefreshHud();
+        }
+
+        public void SyncAmmo(int authoritativeMagazine, int authoritativeReserve, bool authoritativeReloading)
+        {
+            magazine = authoritativeMagazine;
+            reserve = authoritativeReserve;
+            if (authoritativeReloading && !reloading)
+            {
+                reloading = true;
+                reloadStartedAt = Time.time;
+                reloadEndsAt = Time.time + reloadDuration;
+            }
+            else if (!authoritativeReloading)
+                reloading = false;
+            RefreshHud();
+        }
+
+        public void PlayRemoteShot()
+        {
+            Play(gunfireSound);
         }
 
         private void CompleteReload()

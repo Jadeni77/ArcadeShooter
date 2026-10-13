@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ArcadeShooter.Enemies;
+using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
 
@@ -33,8 +34,10 @@ namespace ArcadeShooter.Encounters
 
         public bool TrySpawnWave(int index, Transform player)
         {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return false;
             if (activeWave >= 0 || index < 0 || index >= WaveCount || player == null ||
                 enemyPrefab == null || enemyPrefab.scene.IsValid() ||
+                enemyPrefab.GetComponent<NetworkObject>() == null ||
                 enemyPrefab.GetComponent<EnemyHealth>() == null ||
                 enemyPrefab.GetComponent<MeleeEnemy>() == null ||
                 enemyPrefab.GetComponent<NavMeshAgent>() == null || waves[index] == null ||
@@ -78,7 +81,8 @@ namespace ArcadeShooter.Encounters
             activeWave = index;
             foreach (Vector3 position in positions)
             {
-                GameObject enemy = Instantiate(enemyPrefab, position, Quaternion.identity, transform);
+                GameObject enemy = Instantiate(enemyPrefab, position, Quaternion.identity);
+                enemy.GetComponent<NetworkObject>().Spawn();
                 EnemyHealth health = enemy.GetComponent<EnemyHealth>();
                 livingEnemies.Add(health);
                 health.Died += OnEnemyDied;
