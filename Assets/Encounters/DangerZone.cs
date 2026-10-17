@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using ArcadeShooter.Player;
+using ArcadeShooter.Missions;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -14,6 +16,8 @@ namespace ArcadeShooter.Encounters
         [SerializeField] private string zoneName = "Danger Zone";
         [SerializeField] private string warningMessage = "HOSTILES INCOMING!";
         [SerializeField, Min(0f)] private float warningDuration = 2f;
+        [Tooltip("How long a wave keeps waiting for spawn room (players or bodies on its markers) before the encounter fails.")]
+        [SerializeField, Min(0f)] private float spawnRetrySeconds = 8f;
         [SerializeField] private AudioClip warningSound;
         [SerializeField] private AudioClip clearSound;
         [SerializeField] private AudioSource audioSource;
@@ -73,8 +77,17 @@ namespace ArcadeShooter.Encounters
         private void OnStateChanged(int previous, int current) => Changed?.Invoke(this);
         private void OnIntegerChanged(int previous, int current) => Changed?.Invoke(this);
 
+        private static bool MissionAllowsProgress => MissionController.Instance == null || MissionController.Instance.IsRunning;
+
         private void Update()
         {
+            if (IsServer && !MissionAllowsProgress)
+            {
+                if (pendingWave != null) StopCoroutine(pendingWave);
+                pendingWave = null;
+                spawner.StopTracking();
+                return;
+            }
             if (!IsSpawned || !IsServer ||
                 (State != ZoneState.Warning && State != ZoneState.Active)) return;
             if (FindLivingPlayer() != null) return;
@@ -86,10 +99,10 @@ namespace ArcadeShooter.Encounters
 
         private void OnTriggerEnter(Collider other)
         {
-            if (!IsSpawned || !IsServer || State != ZoneState.Inactive ||
+            if (!IsSpawned || !IsServer || !MissionAllowsProgress || State != ZoneState.Inactive ||
                 !(other is CharacterController)) return;
             PlayerHealth player = other.GetComponent<PlayerHealth>();
-            if (player == null || player.IsDead) return;
+            if (player == null || player.IsDead || !player.GetComponent<ArcadeShooter.Networking.NetworkPlayer>().InMatch) return;
             Activate();
         }
 
@@ -103,27 +116,50 @@ namespace ArcadeShooter.Encounters
         private IEnumerator StartAfterDelay(float delay, int waveIndex)
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
-            pendingWave = null;
-            if (State == ZoneState.Failed || State == ZoneState.Cleared) yield break;
-            PlayerHealth player = FindLivingPlayer();
-            if (player == null || !spawner.TrySpawnWave(waveIndex, player.transform))
+            if (!CanContinueWave()) { pendingWave = null; yield break; }
+            if (!spawner.IsWaveConfigured(waveIndex))
             {
-                state.Value = (int)ZoneState.Failed;
-                Debug.LogError($"{name}: encounter stopped because wave {waveIndex + 1} could not spawn.", this);
+                pendingWave = null;
+                StopEncounter($"wave {waveIndex + 1} is not configured");
                 yield break;
             }
+            // A player or body standing on the spawn markers only delays the wave.
+            float giveUpAt = Time.time + spawnRetrySeconds;
+            while (true)
+            {
+                if (!CanContinueWave()) { pendingWave = null; yield break; }
+                if (spawner.TrySpawnWave(waveIndex, LivingPlayerPositions())) break;
+                if (Time.time >= giveUpAt)
+                {
+                    pendingWave = null;
+                    StopEncounter($"wave {waveIndex + 1} found no room to spawn for {spawnRetrySeconds:0.#} s");
+                    yield break;
+                }
+                yield return new WaitForSeconds(0.5f);
+            }
+            pendingWave = null;
             currentWave.Value = waveIndex + 1;
             state.Value = (int)ZoneState.Active;
         }
 
+        // Update() stops the encounter itself when the mission ends or nobody is left alive.
+        private bool CanContinueWave() => MissionAllowsProgress && State != ZoneState.Failed &&
+                                          State != ZoneState.Cleared && FindLivingPlayer() != null;
+
+        private void StopEncounter(string reason)
+        {
+            state.Value = (int)ZoneState.Failed;
+            Debug.LogError($"{name}: encounter stopped because {reason}.", this);
+        }
+
         private void OnRemainingChanged(int count)
         {
-            if (IsServer) remainingEnemies.Value = count;
+            if (IsServer && MissionAllowsProgress) remainingEnemies.Value = count;
         }
 
         private void OnWaveCompleted()
         {
-            if (!IsServer || State != ZoneState.Active) return;
+            if (!IsServer || !MissionAllowsProgress || State != ZoneState.Active) return;
             if (CurrentWave >= spawner.WaveCount)
             {
                 state.Value = (int)ZoneState.Cleared;
@@ -141,6 +177,15 @@ namespace ArcadeShooter.Encounters
             return null;
         }
 
+        private static List<Vector3> LivingPlayerPositions()
+        {
+            var positions = new List<Vector3>();
+            foreach (PlayerHealth player in FindObjectsByType<PlayerHealth>())
+                if (!player.IsDead && player.GetComponent<ArcadeShooter.Networking.NetworkPlayer>().InMatch)
+                    positions.Add(player.transform.position);
+            return positions;
+        }
+
         private void Play(AudioClip clip)
         {
             if (clip != null && audioSource != null) audioSource.PlayOneShot(clip);
@@ -155,6 +200,10 @@ namespace ArcadeShooter.Encounters
             Gizmos.DrawWireCube(box.center, box.size);
         }
 
-        private void OnValidate() => warningDuration = Mathf.Max(0f, warningDuration);
+        private void OnValidate()
+        {
+            warningDuration = Mathf.Max(0f, warningDuration);
+            spawnRetrySeconds = Mathf.Max(0f, spawnRetrySeconds);
+        }
     }
 }

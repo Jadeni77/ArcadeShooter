@@ -1,5 +1,6 @@
 using System;
 using ArcadeShooter.Combat;
+using ArcadeShooter.Missions;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -38,7 +39,8 @@ namespace ArcadeShooter.Player
 
         public bool ApplyDamage(float amount, Vector3 hitPoint)
         {
-            if (!IsServer || IsDead || amount <= 0f) return false;
+            if (!IsServer || IsDead || amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount) ||
+                (MissionController.Instance != null && !MissionController.Instance.IsRunning)) return false;
             health.Value = Mathf.Max(0f, Health - amount);
             return true;
         }

@@ -1,5 +1,6 @@
 using System;
 using ArcadeShooter.Player;
+using ArcadeShooter.Missions;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -59,6 +60,12 @@ namespace ArcadeShooter.Enemies
             if (networkObject == null || !networkObject.IsSpawned ||
                 NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return;
             if (CurrentState == State.Dead) return;
+            if (MissionController.Instance != null && !MissionController.Instance.IsRunning)
+            {
+                target = null;
+                SetState(State.Idle);
+                return;
+            }
             if (Time.time >= nextScanAt)
             {
                 target = FindClosestLivingPlayer();

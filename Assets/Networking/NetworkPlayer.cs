@@ -56,7 +56,7 @@ namespace ArcadeShooter.Networking
             SetControl(false);
         }
 
-        [Rpc(SendTo.Owner)]
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         public void BeginMatchRpc(Vector3 spawnPosition)
         {
             if (!IsOwner) return;
@@ -72,9 +72,11 @@ namespace ArcadeShooter.Networking
             if (listener != null) listener.enabled = true;
             SetControl(!GetComponent<PlayerHealth>().IsDead);
             foreach (Canvas canvas in localCanvases) canvas.enabled = true;
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
         }
 
-        [Rpc(SendTo.Everyone)]
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
         public void ShowMatchRpc()
         {
             inMatch = true;
@@ -88,6 +90,22 @@ namespace ArcadeShooter.Networking
             if (remoteBody != null) remoteBody.SetActive(false);
             if (playerCamera != null) playerCamera.gameObject.SetActive(false);
             if (listener != null) listener.enabled = false;
+            foreach (Canvas canvas in localCanvases) canvas.enabled = false;
+        }
+
+        // Mission results retain the player's view while stopping all local gameplay input.
+        // The mission controller calls this on every peer after its final state replicates.
+        public void FreezeForResults()
+        {
+            inMatch = false;
+            SetControl(false);
+            shotFlashEndsAt = 0f;
+            remoteRenderer?.SetPropertyBlock(null);
+            if (IsOwner)
+            {
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
         }
 
         public void FlashRemoteShot()

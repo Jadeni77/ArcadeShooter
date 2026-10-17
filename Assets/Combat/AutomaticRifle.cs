@@ -1,6 +1,7 @@
 using System;
 using ArcadeShooter.UI;
 using ArcadeShooter.Networking;
+using ArcadeShooter.Missions;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -43,6 +44,7 @@ namespace ArcadeShooter.Combat
         private float flashEndsAt;
         private bool reloading;
         private NetworkRifle networkRifle;
+        private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
 
         public int Magazine => magazine;
         public int Reserve => reserve;
@@ -79,6 +81,16 @@ namespace ArcadeShooter.Combat
 
         private void Update()
         {
+            if (!CombatAllowed)
+            {
+                if (reloading)
+                {
+                    reloading = false;
+                    RefreshHud();
+                }
+                if (muzzleFlash != null) muzzleFlash.SetActive(false);
+                return;
+            }
             if (reloading && Time.time >= reloadEndsAt)
                 CompleteReload();
 
@@ -94,7 +106,7 @@ namespace ArcadeShooter.Combat
 
         private bool TryFire()
         {
-            if (reloading || aimCamera == null || Time.time < nextShotAt)
+            if (!CombatAllowed || reloading || aimCamera == null || Time.time < nextShotAt)
                 return false;
             if (magazine <= 0)
             {
@@ -133,7 +145,7 @@ namespace ArcadeShooter.Combat
 
         private void BeginReload()
         {
-            if (reloading || magazine >= magazineSize || reserve <= 0)
+            if (!CombatAllowed || reloading || magazine >= magazineSize || reserve <= 0)
                 return;
             reloading = true;
             reloadStartedAt = Time.time;
@@ -165,6 +177,7 @@ namespace ArcadeShooter.Combat
 
         private void CompleteReload()
         {
+            if (!CombatAllowed) return;
             int transferred = Mathf.Min(magazineSize - magazine, reserve);
             magazine += transferred;
             reserve -= transferred;

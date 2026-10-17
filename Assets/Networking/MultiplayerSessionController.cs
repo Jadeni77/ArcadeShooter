@@ -1,6 +1,8 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using ArcadeShooter.Missions;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -12,6 +14,9 @@ using UnityEngine.UI;
 
 namespace ArcadeShooter.Networking
 {
+    // Let NetworkManager initialize its cleanup dependencies, then discard a reloaded
+    // menu's duplicate before its camera or UI can render. NGO keeps the existing singleton.
+    [DefaultExecutionOrder(10000)]
     [RequireComponent(typeof(NetworkManager))]
     public sealed class MultiplayerSessionController : MonoBehaviour
     {
@@ -30,26 +35,48 @@ namespace ArcadeShooter.Networking
         [SerializeField] private Camera menuCamera;
 
         private NetworkManager network;
+        private NetworkSceneManager registeredScenes;
         private ISession session;
         private bool busy;
         private bool leaving;
         private bool matchStarted;
+        private bool returningToMenu;
         private string status = "Host a game or enter a join code.";
         private float nextRefresh;
         private static string menuReturnStatus;
-        private const string MatchStatus = "Match started. Press Esc to use Leave Game; click the map to aim again.";
+        private const string GameplayScene = "FirstPersonTest";
+        private const string MenuScene = "MainMenu";
+        private const string MatchStatus = "Complete the mission. Press Esc to use Leave Game; click the map to aim again.";
+        // Prefixes every reason the host gives when it removes a client, so that client can tell
+        // "the host removed me" apart from "the host's session ended".
+        private const string RemovedByHostPrefix = "Removed by host: ";
+
+        public static MultiplayerSessionController Instance { get; private set; }
+        public bool CanManageMission => !busy && !leaving && session != null && session.IsHost &&
+                                        network != null && network.IsHost;
+        public bool IsBusy => busy;
+        public string Status => status;
+        // The last replay or lobby-return failure, shown on the mission results screen.
+        public string LastActionError { get; private set; }
 
         private void Awake()
         {
+            if (Instance != null && Instance != this)
+            {
+                gameObject.SetActive(false);
+                Destroy(gameObject);
+                return;
+            }
+            Instance = this;
             DontDestroyOnLoad(gameObject);
             network = GetComponent<NetworkManager>();
             network.ConnectionApprovalCallback = ApproveConnection;
             network.OnClientDisconnectCallback += OnDisconnected;
             hostButton.onClick.AddListener(() => _ = HostAsync());
             joinButton.onClick.AddListener(() => _ = JoinAsync());
-            startButton.onClick.AddListener(() => _ = StartMatchAsync());
-            lobbyLeaveButton.onClick.AddListener(() => _ = LeaveAsync());
-            gameplayLeaveButton.onClick.AddListener(() => _ = LeaveAsync());
+            startButton.onClick.AddListener(() => _ = LoadSessionSceneAsync(GameplayScene));
+            lobbyLeaveButton.onClick.AddListener(LeaveGame);
+            gameplayLeaveButton.onClick.AddListener(LeaveGame);
             SceneManager.sceneLoaded += OnSceneLoaded;
             if (!string.IsNullOrEmpty(menuReturnStatus))
             {
@@ -61,23 +88,39 @@ namespace ArcadeShooter.Networking
 
         private void OnDestroy()
         {
+            if (Instance != this) return;
+            Instance = null;
             SceneManager.sceneLoaded -= OnSceneLoaded;
+            UnsubscribeSceneEvents();
             if (network != null)
             {
                 network.OnClientDisconnectCallback -= OnDisconnected;
                 network.ConnectionApprovalCallback = null;
-                if (network.SceneManager != null)
-                    network.SceneManager.OnLoadEventCompleted -= OnLoadComplete;
             }
             UnsubscribeSession();
         }
 
         private void Update()
         {
+            SubscribeSceneEvents();
             if (Time.unscaledTime < nextRefresh) return;
             nextRefresh = Time.unscaledTime + 0.25f;
             Refresh();
         }
+
+        public void ReplayMission()
+        {
+            if (CanManageMission && MissionController.Instance != null && MissionController.Instance.IsFinished)
+                _ = LoadSessionSceneAsync(GameplayScene);
+        }
+
+        public void ReturnToLobby()
+        {
+            if (CanManageMission && MissionController.Instance != null && MissionController.Instance.IsFinished)
+                _ = LoadSessionSceneAsync(MenuScene);
+        }
+
+        public void LeaveGame() => _ = LeaveAsync();
 
         private async Task InitializeAsync()
         {
@@ -136,81 +179,187 @@ namespace ArcadeShooter.Networking
             finally { busy = false; Refresh(); }
         }
 
-        private async Task StartMatchAsync()
+        private async Task LoadSessionSceneAsync(string sceneName)
         {
-            if (busy || session == null || !session.IsHost || matchStarted || !network.IsHost) return;
+            if (!CanManageMission) return;
+            if (matchStarted && (MissionController.Instance == null || !MissionController.Instance.IsFinished)) return;
             busy = true;
-            status = "Loading map...";
+            matchStarted = true; // Also rejects new connections during the lobby lock request.
+            LastActionError = null;
+            status = sceneName == GameplayScene ? "Loading mission..." : "Returning to lobby...";
+            bool loadStarted = false;
             Refresh();
             try
             {
                 IHostSession host = session.AsHost();
                 host.IsLocked = true;
                 await host.SavePropertiesAsync();
-                network.SceneManager.OnLoadEventCompleted += OnLoadComplete;
-                matchStarted = true;
-                SceneEventProgressStatus result = network.SceneManager.LoadScene("FirstPersonTest", LoadSceneMode.Single);
+                if (leaving || session == null || !network.IsHost) return;
+                SubscribeSceneEvents();
+                // A single-mode network load despawns every avatar and wave enemy (all spawned to be
+                // destroyed with the scene) only once it has started, so a refused load keeps the
+                // current match intact. Fresh avatars reset health, ammo, input, camera, and HUD.
+                SceneEventProgressStatus result = network.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
                 if (result != SceneEventProgressStatus.Started)
                     throw new InvalidOperationException("Network scene load failed: " + result);
+                loadStarted = true;
             }
             catch (Exception exception)
             {
-                matchStarted = false;
-                if (network.SceneManager != null)
-                    network.SceneManager.OnLoadEventCompleted -= OnLoadComplete;
-                if (session != null && session.IsHost)
-                {
-                    try
-                    {
-                        IHostSession host = session.AsHost();
-                        host.IsLocked = false;
-                        await host.SavePropertiesAsync();
-                    }
-                    catch (Exception unlockException)
-                    {
-                        Debug.LogWarning("Could not reopen lobby: " + unlockException.Message);
-                    }
-                }
-                status = "Could not start match: " + exception.Message;
+                matchStarted = SceneManager.GetActiveScene().name == GameplayScene;
+                if (!matchStarted) await UnlockLobbyAsync();
+                status = "Could not load scene: " + exception.Message;
+                LastActionError = status;
                 Debug.LogError(exception);
             }
-            finally { busy = false; Refresh(); }
+            finally
+            {
+                // Keep the buttons locked until every remaining client has finished the scene load.
+                if (!loadStarted) busy = false;
+                Refresh();
+            }
+        }
+
+        private void SubscribeSceneEvents()
+        {
+            if (network == null || !network.IsListening || network.SceneManager == registeredScenes) return;
+            UnsubscribeSceneEvents();
+            registeredScenes = network.SceneManager;
+            if (registeredScenes == null) return;
+            registeredScenes.OnLoad += OnNetworkLoad;
+            registeredScenes.OnLoadEventCompleted += OnLoadComplete;
+        }
+
+        private void UnsubscribeSceneEvents()
+        {
+            if (registeredScenes == null) return;
+            registeredScenes.OnLoad -= OnNetworkLoad;
+            registeredScenes.OnLoadEventCompleted -= OnLoadComplete;
+            registeredScenes = null;
+        }
+
+        private void OnNetworkLoad(ulong clientId, string sceneName, LoadSceneMode mode, AsyncOperation operation)
+        {
+            if (sceneName != GameplayScene && sceneName != MenuScene) return;
+            busy = true;
+            matchStarted = true;
+            status = sceneName == GameplayScene ? "Loading mission..." : "Returning to lobby...";
+            Refresh();
         }
 
         private void OnLoadComplete(string sceneName, LoadSceneMode mode,
-            System.Collections.Generic.List<ulong> completed, System.Collections.Generic.List<ulong> timedOut)
+            List<ulong> completed, List<ulong> timedOut)
         {
-            if (!network.IsServer || sceneName != "FirstPersonTest") return;
-            if (timedOut.Count > 0)
+            if (session == null || (sceneName != GameplayScene && sceneName != MenuScene)) return;
+            if (network.IsServer)
             {
-                status = "Some players could not load the map.";
-                Refresh();
+                foreach (ulong id in timedOut)
+                    if (id != network.LocalClientId && network.ConnectedClients.ContainsKey(id))
+                        network.DisconnectClient(id, RemovedByHostPrefix + "scene loading timed out.");
+                if (!completed.Contains(network.LocalClientId))
+                {
+                    _ = EndFailedLoadAsync("The host could not finish loading the scene.");
+                    return;
+                }
             }
-            Transform spawnRoot = GameObject.Find("Multiplayer Spawn Points")?.transform;
-            int index = 0;
-            foreach (ulong id in network.ConnectedClientsIds.OrderBy(id => id))
+            if (sceneName == MenuScene)
             {
-                if (!network.ConnectedClients.TryGetValue(id, out NetworkClient client) ||
-                    client.PlayerObject == null) continue;
+                status = "Lobby ready. The host can start another mission.";
+                if (network.IsServer) _ = UnlockLobbyAsync();
+                else { matchStarted = false; busy = false; }
+                Refresh();
+                return;
+            }
+            if (network.IsServer)
+            {
+                try
+                {
+                    if (MissionController.Instance == null)
+                        throw new InvalidOperationException("The map has no mission controller.");
+                    SpawnMissionPlayers(completed, timedOut);
+                    MissionController.Instance.BeginMission();
+                }
+                catch (Exception exception)
+                {
+                    Debug.LogError(exception);
+                    _ = EndFailedLoadAsync("Could not start mission: " + exception.Message);
+                    return;
+                }
+            }
+            matchStarted = true;
+            busy = false;
+            status = timedOut.Count == 0 ? MatchStatus : "A player could not load and was disconnected. " + MatchStatus;
+            Refresh();
+        }
+
+        private void SpawnMissionPlayers(List<ulong> completed, List<ulong> timedOut)
+        {
+            Transform spawnRoot = GameObject.Find("Multiplayer Spawn Points")?.transform;
+            var players = new List<NetworkPlayer>();
+            var positions = new List<Vector3>();
+            foreach (ulong id in network.ConnectedClientsIds.OrderBy(id => id).ToArray())
+            {
+                if (!completed.Contains(id) || timedOut.Contains(id)) continue;
+                int index = players.Count;
                 Vector3 position = spawnRoot != null && index < spawnRoot.childCount
                     ? spawnRoot.GetChild(index).position
                     : new Vector3(-13f + index * 2f, 1.05f, 0f);
-                NetworkPlayer player = client.PlayerObject.GetComponent<NetworkPlayer>();
-                player.ShowMatchRpc();
-                player.BeginMatchRpc(position);
-                index++;
+                GameObject avatar = Instantiate(network.NetworkConfig.PlayerPrefab, position, Quaternion.identity);
+                NetworkObject playerObject = avatar.GetComponent<NetworkObject>();
+                playerObject.SpawnAsPlayerObject(id, true);
+                players.Add(avatar.GetComponent<NetworkPlayer>());
+                positions.Add(position);
             }
-            status = MatchStatus;
-            Refresh();
+            // Instantiate every avatar first: disabling input on a new remote avatar must not
+            // release the cursor after the owner has already entered the mission.
+            for (int i = 0; i < players.Count; i++)
+            {
+                players[i].ShowMatchRpc();
+                players[i].BeginMatchRpc(positions[i]);
+            }
+        }
+
+        private async Task UnlockLobbyAsync()
+        {
+            try
+            {
+                if (session != null && session.IsHost)
+                {
+                    IHostSession host = session.AsHost();
+                    host.IsLocked = false;
+                    await host.SavePropertiesAsync();
+                }
+                matchStarted = false;
+            }
+            catch (Exception exception)
+            {
+                // Existing players can replay even if the service could not reopen joining.
+                matchStarted = false;
+                status = "Lobby ready, but new players cannot join yet: " + exception.Message;
+                Debug.LogWarning(status);
+            }
+            finally { busy = false; Refresh(); }
         }
 
         private void ApproveConnection(NetworkManager.ConnectionApprovalRequest request,
             NetworkManager.ConnectionApprovalResponse response)
         {
             response.Approved = !matchStarted && network.ConnectedClientsIds.Count < 4;
-            response.CreatePlayerObject = response.Approved;
+            // The lobby needs no gameplay avatars. The host spawns them after scene loading.
+            response.CreatePlayerObject = false;
             response.Reason = response.Approved ? string.Empty : "Game is full or already started.";
             response.Pending = false;
+        }
+
+        private async Task EndFailedLoadAsync(string message)
+        {
+            leaving = true;
+            try
+            {
+                if (session != null && session.IsHost) await session.AsHost().DeleteAsync();
+            }
+            catch (Exception exception) { Debug.LogWarning("Session cleanup: " + exception.Message); }
+            finally { ReturnToMenu(message); leaving = false; }
         }
 
         private async Task LeaveAsync()
@@ -243,10 +392,28 @@ namespace ArcadeShooter.Networking
         private void OnDisconnected(ulong clientId)
         {
             if (leaving || session == null) return;
-            if (clientId == network.LocalClientId || !network.IsServer)
-                ReturnToMenu("Host disconnected. Session ended.");
-            else
+            if (clientId != network.LocalClientId && network.IsServer)
+            {
                 Refresh();
+                return;
+            }
+            // NGO reports the host's reason when it removed this client; otherwise the session ended.
+            string reason = network.DisconnectReason;
+            if (!network.IsServer && reason != null && reason.StartsWith(RemovedByHostPrefix, StringComparison.Ordinal))
+            {
+                // The session continues without this client, so leave it to keep the lobby list accurate.
+                ISession removedFrom = session;
+                ReturnToMenu(reason);
+                _ = LeaveQuietlyAsync(removedFrom);
+                return;
+            }
+            ReturnToMenu("Host disconnected. Session ended.");
+        }
+
+        private static async Task LeaveQuietlyAsync(ISession removedFrom)
+        {
+            try { await removedFrom.LeaveAsync(); }
+            catch (Exception exception) { Debug.LogWarning("Session cleanup: " + exception.Message); }
         }
 
         private void OnSessionRemoved()
@@ -259,6 +426,7 @@ namespace ArcadeShooter.Networking
             session.Changed += OnSessionChanged;
             session.RemovedFromSession += OnSessionRemoved;
             session.Deleted += OnSessionRemoved;
+            SubscribeSceneEvents();
         }
 
         private void UnsubscribeSession()
@@ -271,31 +439,35 @@ namespace ArcadeShooter.Networking
 
         private void ReturnToMenu(string message)
         {
-            if (session == null && SceneManager.GetActiveScene().name == "MainMenu") return;
+            if (returningToMenu) return;
+            returningToMenu = true;
             UnsubscribeSession();
             session = null;
             matchStarted = false;
-            if (network.SceneManager != null)
-                network.SceneManager.OnLoadEventCompleted -= OnLoadComplete;
+            busy = false;
+            UnsubscribeSceneEvents();
             if (network.IsListening) network.Shutdown();
-            if (SceneManager.GetActiveScene().name == "MainMenu")
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            if (SceneManager.GetActiveScene().name == MenuScene)
             {
                 status = message;
+                returningToMenu = false;
                 Refresh();
                 return;
             }
             menuReturnStatus = message;
             Destroy(gameObject);
-            SceneManager.LoadSceneAsync("MainMenu");
+            SceneManager.LoadSceneAsync(MenuScene);
         }
 
         private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
-            if (scene.name == "FirstPersonTest" && session != null)
-                status = MatchStatus;
+            if (scene.name == GameplayScene && session != null)
+                status = "Waiting for all players to load...";
             if (menuCamera != null)
             {
-                bool inMenu = scene.name == "MainMenu";
+                bool inMenu = scene.name == MenuScene;
                 menuCamera.enabled = inMenu;
                 menuCamera.GetComponent<AudioListener>().enabled = inMenu;
             }
@@ -304,19 +476,20 @@ namespace ArcadeShooter.Networking
 
         private void Refresh()
         {
-            bool gameplay = SceneManager.GetActiveScene().name == "FirstPersonTest" && session != null;
+            bool gameplay = SceneManager.GetActiveScene().name == GameplayScene && session != null;
             if (mainPanel != null) mainPanel.SetActive(session == null);
             if (lobbyPanel != null) lobbyPanel.SetActive(session != null && !gameplay);
             if (gameplayPanel != null) gameplayPanel.SetActive(gameplay);
             if (hostButton != null) hostButton.interactable = !busy;
             if (joinButton != null) joinButton.interactable = !busy;
             if (startButton != null) startButton.gameObject.SetActive(session != null && session.IsHost);
-            if (startButton != null) startButton.interactable = !busy && !matchStarted;
+            if (startButton != null) startButton.interactable = CanManageMission && !matchStarted;
             if (joinCodeText != null) joinCodeText.text = session == null ? string.Empty : "JOIN CODE  " + session.Code;
             if (playersText != null && session != null)
                 playersText.text = "Players  " + session.PlayerCount + " / 4\n" +
                     string.Join("\n", session.Players.Select((player, index) => "Player " + (index + 1)));
-            if (statusText != null) statusText.text = status;
+            if (statusText != null) statusText.text = gameplay && MissionController.Instance != null &&
+                MissionController.Instance.IsFinished && !busy ? "Mission ended. The host can replay or return everyone to the lobby." : status;
         }
     }
 }

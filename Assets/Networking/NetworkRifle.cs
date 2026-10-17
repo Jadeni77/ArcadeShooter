@@ -1,4 +1,6 @@
 using ArcadeShooter.Combat;
+using ArcadeShooter.Enemies;
+using ArcadeShooter.Missions;
 using ArcadeShooter.Player;
 using Unity.Netcode;
 using UnityEngine;
@@ -15,8 +17,9 @@ namespace ArcadeShooter.Networking
         private AutomaticRifle rifle;
         private PlayerHealth health;
         private NetworkPlayer player;
-        private float nextShotAt;
+        private readonly ShotCadence cadence = new ShotCadence();
         private float reloadEndsAt;
+        private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
 
         private void Awake()
         {
@@ -47,6 +50,11 @@ namespace ArcadeShooter.Networking
 
         private void Update()
         {
+            if (!CombatAllowed)
+            {
+                if (IsServer && reloading.Value) reloading.Value = false;
+                return;
+            }
             if (!IsServer || !reloading.Value || Time.time < reloadEndsAt) return;
             int moved = Mathf.Min(rifle.MagazineSize - magazine.Value, reserve.Value);
             magazine.Value += moved;
@@ -56,32 +64,38 @@ namespace ArcadeShooter.Networking
 
         public void RequestShot(Vector3 direction)
         {
-            if (IsOwner && IsSpawned) FireRpc(direction);
+            if (IsOwner && IsSpawned && CombatAllowed) FireRpc(direction);
         }
 
         public void RequestReload()
         {
-            if (IsOwner && IsSpawned) ReloadRpc();
+            if (IsOwner && IsSpawned && CombatAllowed) ReloadRpc();
         }
 
-        [Rpc(SendTo.Server)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void FireRpc(Vector3 direction)
         {
-            if (!player.InMatch || health.IsDead || reloading.Value || magazine.Value <= 0 ||
-                Time.time + 0.001f < nextShotAt || !ValidAim(direction))
+            // The owner fires on its own clock; network jitter can bunch evenly spaced shots, so
+            // the host accepts a shot up to half an interval early without raising the fire rate.
+            float interval = 1f / rifle.RoundsPerSecond;
+            if (!CombatAllowed || !player.InMatch || health.IsDead || reloading.Value || magazine.Value <= 0 ||
+                !ValidAim(direction) || !cadence.TryAccept(Time.time, interval, interval * 0.5f))
             {
                 CorrectAmmoRpc(magazine.Value, reserve.Value, reloading.Value);
                 return;
             }
-            nextShotAt = Time.time + 1f / rifle.RoundsPerSecond;
             magazine.Value--;
+            MissionScoreTracker.Instance?.RecordShot(OwnerClientId);
             // The existing prefab's camera is 0.7 m above its CharacterController root.
             Vector3 origin = transform.position + Vector3.up * 0.7f;
             if (Physics.Raycast(origin, direction.normalized, out RaycastHit hit,
                     rifle.Range, rifle.HitMask, QueryTriggerInteraction.Ignore))
             {
                 IDamageable target = hit.collider.GetComponentInParent<IDamageable>();
-                if (target != null && target.ApplyDamage(rifle.Damage, hit.point))
+                bool damaged = target is EnemyHealth enemy
+                    ? enemy.ApplyDamageFromPlayer(rifle.Damage, hit.point, OwnerClientId)
+                    : target != null && target.ApplyDamage(rifle.Damage, hit.point);
+                if (damaged)
                     ConfirmHitRpc();
             }
             RemoteShotRpc();
@@ -100,32 +114,33 @@ namespace ArcadeShooter.Networking
                    Vector3.Dot(flat.normalized, transform.forward) >= 0.45f;
         }
 
-        [Rpc(SendTo.Server)]
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void ReloadRpc() => StartReload();
 
         private void StartReload()
         {
-            if (!IsServer || reloading.Value || health.IsDead || !player.InMatch ||
+            if (!IsServer || !CombatAllowed || reloading.Value || health.IsDead || !player.InMatch ||
                 magazine.Value >= rifle.MagazineSize || reserve.Value <= 0) return;
             reloading.Value = true;
             reloadEndsAt = Time.time + rifle.ReloadDuration;
         }
 
-        [Rpc(SendTo.Owner)]
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         private void ConfirmHitRpc()
         {
             if (IsOwner) GetComponentInChildren<ArcadeShooter.UI.WeaponHud>(true)?.ConfirmHit();
         }
 
-        [Rpc(SendTo.Owner)]
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
         private void CorrectAmmoRpc(int currentMagazine, int currentReserve, bool isReloading)
         {
             if (IsOwner) rifle.SyncAmmo(currentMagazine, currentReserve, isReloading);
         }
 
-        [Rpc(SendTo.NotOwner)]
+        [Rpc(SendTo.NotOwner, InvokePermission = RpcInvokePermission.Server)]
         private void RemoteShotRpc()
         {
+            if (!CombatAllowed) return;
             rifle.PlayRemoteShot();
             player.FlashRemoteShot();
         }

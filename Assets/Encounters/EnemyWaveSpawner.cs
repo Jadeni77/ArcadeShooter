@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using ArcadeShooter.Enemies;
+using ArcadeShooter.Missions;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.AI;
@@ -32,62 +33,65 @@ namespace ArcadeShooter.Encounters
 
         public float DelayBeforeWave(int index) => waves[index].delayBeforeWave;
 
-        public bool TrySpawnWave(int index, Transform player)
+        // Configuration problems cannot fix themselves, so they are reported once and not retried.
+        public bool IsWaveConfigured(int index)
         {
-            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer) return false;
-            if (activeWave >= 0 || index < 0 || index >= WaveCount || player == null ||
-                enemyPrefab == null || enemyPrefab.scene.IsValid() ||
-                enemyPrefab.GetComponent<NetworkObject>() == null ||
-                enemyPrefab.GetComponent<EnemyHealth>() == null ||
-                enemyPrefab.GetComponent<MeleeEnemy>() == null ||
-                enemyPrefab.GetComponent<NavMeshAgent>() == null || waves[index] == null ||
-                waves[index].enemyCount < 1 || spawnPoints == null)
-            {
-                Debug.LogError($"{name}: invalid wave configuration or a wave is already active.", this);
-                return false;
-            }
+            bool valid = index >= 0 && index < WaveCount && waves[index] != null && waves[index].enemyCount >= 1 &&
+                         enemyPrefab != null && !enemyPrefab.scene.IsValid() &&
+                         enemyPrefab.GetComponent<NetworkObject>() != null &&
+                         enemyPrefab.GetComponent<EnemyHealth>() != null &&
+                         enemyPrefab.GetComponent<MeleeEnemy>() != null &&
+                         enemyPrefab.GetComponent<NavMeshAgent>() != null &&
+                         spawnPoints != null && Array.Exists(spawnPoints, point => point != null);
+            if (!valid) Debug.LogError($"{name}: wave {index + 1} has an invalid configuration.", this);
+            return valid;
+        }
+
+        // Returns false without logging when players or bodies leave no room yet; the caller retries.
+        public bool TrySpawnWave(int index, IReadOnlyList<Vector3> playerPositions)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer ||
+                (MissionController.Instance != null && !MissionController.Instance.IsRunning) ||
+                activeWave >= 0 || index < 0 || index >= WaveCount || waves[index] == null ||
+                enemyPrefab == null || spawnPoints == null) return false;
 
             int count = waves[index].enemyCount;
-            var positions = new List<Vector3>(count);
             int firstPoint = 0;
             for (int previous = 0; previous < index; previous++)
                 if (waves[previous] != null) firstPoint += Mathf.Max(0, waves[previous].enemyCount);
-            for (int i = 0; i < spawnPoints.Length; i++)
-            {
-                if (positions.Count == count) break;
-                Transform point = spawnPoints[(firstPoint + i) % spawnPoints.Length];
-                if (point == null || !NavMesh.SamplePosition(point.position, out NavMeshHit hit,
-                        navigationSampleRadius, NavMesh.AllAreas)) continue;
-                Vector3 position = hit.position;
-                if ((position - player.position).sqrMagnitude < minimumPlayerDistance * minimumPlayerDistance)
-                    continue;
-                // Check the agent's standing space. Triggers (including the zone) are ignored.
-                Vector3 bottom = position + Vector3.up * 0.4f;
-                Vector3 top = position + Vector3.up * 1.4f;
-                if (Physics.CheckCapsule(bottom, top, 0.38f, Physics.DefaultRaycastLayers,
-                        QueryTriggerInteraction.Ignore)) continue;
-                bool overlapsSelected = false;
-                foreach (Vector3 selected in positions)
-                    if ((selected - position).sqrMagnitude < 0.8f * 0.8f) overlapsSelected = true;
-                if (!overlapsSelected) positions.Add(position);
-            }
-
-            if (positions.Count != count)
-            {
-                Debug.LogError($"{name}: wave {index + 1} needs {count} clear NavMesh spawn points; found {positions.Count}.", this);
-                return false;
-            }
+            var markers = new List<Vector3>(spawnPoints.Length);
+            foreach (Transform point in spawnPoints)
+                if (point != null) markers.Add(point.position);
+            var positions = new List<Vector3>(count);
+            if (!SpawnPlanner.TryPlan(count, markers, firstPoint, playerPositions, minimumPlayerDistance, 0.8f,
+                    ResolveSpawn, positions)) return false;
 
             activeWave = index;
             foreach (Vector3 position in positions)
             {
                 GameObject enemy = Instantiate(enemyPrefab, position, Quaternion.identity);
-                enemy.GetComponent<NetworkObject>().Spawn();
+                enemy.GetComponent<NetworkObject>().Spawn(true);
                 EnemyHealth health = enemy.GetComponent<EnemyHealth>();
                 livingEnemies.Add(health);
                 health.Died += OnEnemyDied;
             }
             RemainingChanged?.Invoke(livingEnemies.Count);
+            return true;
+        }
+
+        // A candidate must be on the NavMesh, reachable from its marker without crossing a wall,
+        // and leave room for an enemy body. Triggers (including the zone) are ignored.
+        private bool ResolveSpawn(Vector3 marker, Vector3 candidate, out Vector3 ground)
+        {
+            ground = default;
+            if (!NavMesh.SamplePosition(marker, out NavMeshHit markerHit, navigationSampleRadius, NavMesh.AllAreas) ||
+                !NavMesh.SamplePosition(candidate, out NavMeshHit hit, navigationSampleRadius, NavMesh.AllAreas) ||
+                NavMesh.Raycast(markerHit.position, hit.position, out _, NavMesh.AllAreas)) return false;
+            Vector3 bottom = hit.position + Vector3.up * 0.4f;
+            Vector3 top = hit.position + Vector3.up * 1.4f;
+            if (Physics.CheckCapsule(bottom, top, 0.38f, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore))
+                return false;
+            ground = hit.position;
             return true;
         }
 
