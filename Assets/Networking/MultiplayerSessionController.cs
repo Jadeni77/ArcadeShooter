@@ -46,7 +46,8 @@ namespace ArcadeShooter.Networking
         private static string menuReturnStatus;
         private const string GameplayScene = "FirstPersonTest";
         private const string MenuScene = "MainMenu";
-        private const string MatchStatus = "Complete the mission. Press Esc to use Leave Game; click the map to aim again.";
+        // Explains the cursor without prompting players to leave; Leave Game stays in the corner.
+        private const string MatchStatus = "Press Esc to release the cursor; click the map to aim again.";
         // Prefixes every reason the host gives when it removes a client, so that client can tell
         // "the host removed me" apart from "the host's session ended".
         private const string RemovedByHostPrefix = "Removed by host: ";
