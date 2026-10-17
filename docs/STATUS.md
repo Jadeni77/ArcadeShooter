@@ -4,9 +4,9 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
 
 ## Current state
 
-### Milestone 6: missions, extraction, and scoring (PR #7, awaiting review)
+### Milestone 6: missions, extraction, and scoring (merged by PR #7 on 2026-10-17)
 
-- PR #6 was merged into `develop` on 2026-10-13 at `48dc43d`. M6 is developed from that commit on `feature/mission-extraction-scoring` in a separate Git worktree, so the owner's original checkout and its uncommitted scene, prefab, material, and cloud-linkage edits stay untouched.
+- M6 was developed on `feature/mission-extraction-scoring` from the M5 merge (`48dc43d`) in a separate Git worktree, so the owner's original checkout and its uncommitted edits stayed untouched. [PR #7](https://github.com/Jadeni77/ArcadeShooter/pull/7) was squash-merged into `develop` on 2026-10-17 as `ef9ca42`.
 - The M6 source adds a host-owned mission with zone A, zone B, and sample objectives; range-validated E interaction; a 10-second all-living-players extraction countdown; failure when no connected living players remain or a required objective can no longer be completed; server-recorded combat statistics and one final result; a mission HUD and results screen; and session-preserving replay and lobby return. `ArcadeShooter > Add Mission Extraction and Scoring` added the sample and extraction marker to the existing three-room scene; running it again upgrades earlier mission content instead of rebuilding the scene.
 - Review fixes on 2026-10-17. Each problem was first reproduced in a live two-player session, then retested:
   - A player standing on a wave spawn marker no longer stops the encounter and leaves the mission unable to finish. Waves fall back to open NavMesh ground near their markers, stay at least 2 m from every living player, and keep trying for up to 8 seconds. If a required zone still cannot continue, the mission ends in Failure with the reason shown, so the host can replay.
@@ -26,7 +26,11 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
   - The host accepted every client shot fired at the full rate: 24 of 24 in bursts, 20 of 20 in combat, and 100 of 100 through three reloads at both about 390 and 60 frames per second. Before the fix it accepted 10 of 12. A narrower race at the end of a reload (a shot arriving in the same host frame the reload finishes) was not reproduced; probing it would need the Multiplayer Tools network simulator.
   - A client dying or disconnecting inside extraction kept the countdown's deadline. Replay (twice), Return to Lobby (twice), rejoining from the lobby, a host-removed client, and the host leaving all behaved as documented.
   - The macOS Development Player build succeeded with three expected warnings: the Pipeline control bridge is disabled in Player builds, and two debug occlusion shaders were stripped. The worktree was cloud-linked for this build, so the earlier "link your project to a project ID" warning is gone. The build report also counts one error entry; it is the Editor command bridge timing out while the build held the main thread, not a build error.
-- Not yet verified: two standalone players on separate machines, three or four players, and human play feel. Run the checklist in [MISSION_TESTING.md](MISSION_TESTING.md) before calling M6 multiplayer acceptance complete.
+- The owner tested the mission on 2026-10-17, reported that it works well, and approved the merge. The test setup was not recorded.
+- Known gap from that test: after a mission, **Leave Session** returns that player to the main menu, and rejoining needs the join code. Only the host's **Return to Lobby** keeps the squad together in the lobby. The owner expects a shared post-mission lobby that everyone returns to without the code; this is deferred to a later UI/UX milestone.
+- Still open: three or four players, and a recorded run with two standalone players on separate machines. The checklist is in [MISSION_TESTING.md](MISSION_TESTING.md).
+
+### Milestone 5: online multiplayer and lobby (merged by PR #6 on 2026-10-13)
 
 - M4 was merged into `develop` by [PR #5](https://github.com/Jadeni77/ArcadeShooter/pull/5). M5 online multiplayer was merged into `develop` by [PR #6](https://github.com/Jadeni77/ArcadeShooter/pull/6) on 2026-10-13. `MainMenu` now leads to a four-player private Session/Relay lobby, a host-started network scene, and the existing explorable map. The M5 code converts the player, rifle, health, enemies, targets, danger zones, and wave spawner to the host-authoritative online path.
 - M5 packages: NGO 2.13.3, Multiplayer Services 2.4.0, and Multiplayer Play Mode 3.0.0. No secret or credential was added. The local `ProjectSettings/ProjectSettings.asset` cloud linkage edit predates M5 and remains uncommitted; a clean checkout must be linked to the intended Unity Dashboard project before online testing. See [MULTIPLAYER_TESTING.md](MULTIPLAYER_TESTING.md).
@@ -35,6 +39,7 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
 - A final host Play mode check defeated the in-scene room-one enemy (60 → 0), confirmed it became inactive after its feedback delay, and reported zero current console errors or warnings. The standalone Development Player opened to the menu, but UI automation could not deliver clicks to its window, so no standalone host/join interaction was claimed.
 - The M5 Editor setup menu was corrected after a reported `NullReferenceException`: a newly added NGO `NetworkManager` can have a null `NetworkConfig` in Edit mode. The command now creates the config explicitly and registers the committed network prefab list. The menu command ran twice without an exception, each generated menu had one prefab list and a player prefab, and a Play mode host created a Relay join code from the regenerated scene.
 - The owner reports that two-player multiplayer connects and runs. They found that clicking **Leave Game** while alive fired the rifle and recaptured the cursor. Escape now releases the cursor; clicking an empty part of the Game view recaptures it, while UI clicks do not. The rifle ignores fire and reload input while the cursor is released, and the match status explains the control. The generated C# project built after the fix with zero errors; its 34 serialized-field warnings were suppressed on the final run. The owner retested and reports that Leave Game now works. The full two-client checklist remains open.
+- The M6 two-player sessions on 2026-10-17 (the host Editor plus a Multiplayer Play Mode virtual player, connected through Relay) also exercised the M5 paths: hosting and joining by code, independent movement and aim, shared enemies and waves, a joiner leaving, and the host leaving. A recorded run with two standalone players on separate machines is still open.
 
 ## Prior milestone record (before M5 conversion)
 
@@ -74,12 +79,16 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
 
 ## Manual play test
 
-Open `Assets/Scenes/FirstPersonTest.unity` in Unity and press Play. Use WASD and mouse look to explore freely, and Shift/Space to sprint/jump. The original red enemy remains in room one; shoot it or move past it. Enter room two to see Zone A's warning, then shoot all three spawned enemies. Confirm the remaining count drops to zero and the area-cleared notice appears. Leave and return; no new enemies should spawn. Continue through the doorway into room three: Zone B should warn, spawn two enemies, wait three seconds after both die, then spawn four. Kill all four and confirm it clears. Health and ammunition remain visible at the bottom. The teal targets still reset. Let enemies kill the player during a separate run, then press R to restart; both zones should activate again on the new run. While alive, R reloads the rifle. Press Escape to release the cursor; click an empty part of the Game view to resume aiming.
+Open `Assets/Scenes/MainMenu.unity` and press Play. `FirstPersonTest` is a networked scene with no player object of its own; its player and mission objects only spawn when a host starts it from the lobby, so pressing Play in it directly does not give a playable game.
+
+For two players on one Mac, activate **Player 2** in **Window > Play Mode > Active Scenario**, or run two copies of a macOS build (see [MULTIPLAYER_TESTING.md](MULTIPLAYER_TESTING.md)). Press **Host Game**, enter the join code in the second player, press **Join Game**, then press **Start Game** on the host. Use WASD and mouse look to explore freely, Shift/Space to sprint and jump, the left mouse button to fire, R to reload, and E to collect the research sample. Clear Zone A in room two and Zone B in room three, collect the sample in room three, then gather every living player at the teal extraction marker in room one for ten seconds. Press Escape to release the cursor; click an empty part of the Game view to resume aiming. The full checklist is in [MISSION_TESTING.md](MISSION_TESTING.md).
 
 ## Existing Git change to preserve
 
-`ProjectSettings/ProjectSettings.asset` has an older uncommitted cloud project, organization, and project-name edit. Its cloud association still needs owner confirmation before committing. Keep it out of the M5 PR and do not discard it.
+`ProjectSettings/ProjectSettings.asset` has an older uncommitted cloud project, organization, and project-name edit. Its cloud association still needs owner confirmation before committing. Keep it out of PRs and do not discard it. A Unity Player build can also leave `Assets/InputSystem_Actions.inputactions` in that file's `preloadedAssets` list on disk; save the project in the Editor afterwards so only the cloud edit remains.
+
+The owner's checkouts also hold other uncommitted local edits (materials, scenes, prefabs, settings, and Multiplayer Play Mode files). Leave them out of PRs unless the owner asks for them.
 
 ## Next milestone
 
-PR #7 (M6) awaits human review. Before merging, run the [MISSION_TESTING.md](MISSION_TESTING.md) checklist with two standalone players. Do not begin M7 until M6 has been reviewed.
+M6 is merged. The owner's next milestones are M7 (weapon models and advanced animations), M8 (environment graphics, sound, and music), and M9 (progression and replayability). Each starts when the owner gives its brief, and only the active milestone gets built. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md) and are not to be built earlier. Follow-ups from M6 that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md).
