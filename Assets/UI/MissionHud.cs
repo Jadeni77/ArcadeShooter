@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using ArcadeShooter.Missions;
 using ArcadeShooter.Networking;
 using TMPro;
@@ -29,12 +30,17 @@ namespace ArcadeShooter.UI
         private TextMeshProUGUI extractionStatus;
         private TextMeshProUGUI resultTitle;
         private TextMeshProUGUI resultMission;
+        private TextMeshProUGUI resultReason;
         private TextMeshProUGUI durationValue;
         private TextMeshProUGUI scoreValue;
         private TextMeshProUGUI rankValue;
+        private TextMeshProUGUI scoreBreakdown;
         private TextMeshProUGUI resultStatus;
         private readonly GameObject[] playerRows = new GameObject[4];
         private readonly TextMeshProUGUI[,] playerCells = new TextMeshProUGUI[4, 7];
+        private GameObject teamRow;
+        private readonly TextMeshProUGUI[] teamCells = new TextMeshProUGUI[7];
+        private readonly List<PlayerMissionStats> statsCopy = new List<PlayerMissionStats>();
         private UnityEngine.UI.Button replayButton;
         private UnityEngine.UI.Button lobbyButton;
         private UnityEngine.UI.Button leaveButton;
@@ -120,7 +126,7 @@ namespace ArcadeShooter.UI
             string occupants = $"{extraction.PlayersInside} / {extraction.LivingPlayers} living players inside";
             extractionStatus.text = extraction.CountdownRunning
                 ? $"EXTRACTING  {Mathf.CeilToInt(extraction.CountdownRemaining)}s\n{occupants}\nStay inside until the countdown ends."
-                : $"EXTRACTION OPEN\n{occupants}\nGather at the green extraction marker.";
+                : $"EXTRACTION OPEN\n{occupants}\nGather at the teal extraction marker.";
         }
 
         private void RefreshResults()
@@ -130,27 +136,44 @@ namespace ArcadeShooter.UI
             resultTitle.color = succeeded ? SuccessColor : FailureColor;
             resultMission.text = mission.MissionName;
             bool ready = score != null && score.ResultsReady;
+            MissionScoreBreakdown breakdown = ready ? score.Breakdown : default;
+            resultReason.text = !ready ? string.Empty : DescribeOutcome(mission, breakdown);
             durationValue.text = ready ? FormatDuration(score.Duration) : "--:--";
             scoreValue.text = ready ? score.TeamScore.ToString("N0") : "--";
             rankValue.text = ready ? score.Rank.ToString() : "--";
+            scoreBreakdown.text = ready ? DescribeScore(breakdown, succeeded) : string.Empty;
 
-            int count = ready ? Mathf.Min(score.Stats.Count, playerRows.Length) : 0;
+            if (ready) score.CopyStats(statsCopy);
+            else statsCopy.Clear();
+            int count = Mathf.Min(statsCopy.Count, playerRows.Length);
             for (int row = 0; row < playerRows.Length; row++)
             {
                 playerRows[row].SetActive(row < count);
                 if (row >= count) continue;
-                PlayerMissionStats stats = score.Stats[row];
+                PlayerMissionStats stats = statsCopy[row];
                 bool local = NetworkManager.Singleton != null &&
                              stats.ClientId == NetworkManager.Singleton.LocalClientId;
-                playerCells[row, 0].text = $"Player {stats.ClientId + 1}" + (local ? " (you)" : "");
+                playerCells[row, 0].text = $"Player {stats.PlayerNumber}" + (local ? " (you)" : "");
                 playerCells[row, 0].color = local ? SuccessColor : Color.white;
                 playerCells[row, 1].text = stats.Kills.ToString();
                 playerCells[row, 2].text = stats.ShotsFired.ToString();
                 playerCells[row, 3].text = stats.Hits.ToString();
-                playerCells[row, 4].text = stats.ShotsFired > 0
-                    ? (100d * stats.Hits / stats.ShotsFired).ToString("0.0") + "%" : "0.0%";
+                playerCells[row, 4].text = stats.Accuracy.ToString("0.0") + "%";
                 playerCells[row, 5].text = stats.ObjectivesCompleted.ToString();
                 playerCells[row, 6].text = stats.Score.ToString("N0");
+            }
+
+            // Shared objectives and bonuses belong to the team, so the team row carries the final score.
+            teamRow.SetActive(ready);
+            if (ready)
+            {
+                MissionTeamTotals totals = MissionTeamTotals.From(statsCopy);
+                teamCells[1].text = totals.Kills.ToString();
+                teamCells[2].text = totals.ShotsFired.ToString();
+                teamCells[3].text = totals.Hits.ToString();
+                teamCells[4].text = totals.Accuracy.ToString("0.0") + "%";
+                teamCells[5].text = $"{mission.CompletedObjectives} / {mission.ObjectiveCount}";
+                teamCells[6].text = score.TeamScore.ToString("N0");
             }
 
             MultiplayerSessionController session = MultiplayerSessionController.Instance;
@@ -160,9 +183,36 @@ namespace ArcadeShooter.UI
             replayButton.interactable = ready && session != null && session.CanManageMission;
             lobbyButton.interactable = ready && session != null && session.CanManageMission;
             leaveButton.interactable = session != null;
+            // Session progress and failures replace the guidance so a refused replay is visible here.
             resultStatus.text = !ready ? "Receiving final results..."
+                : session != null && session.IsBusy ? session.Status
+                : session != null && !string.IsNullOrEmpty(session.LastActionError) ? session.LastActionError
                 : host ? "Replay together, or return the session to the lobby."
                 : "Waiting for the host to replay or return everyone to the lobby.";
+        }
+
+        private static string DescribeOutcome(MissionController mission, MissionScoreBreakdown breakdown)
+        {
+            switch (mission.EndReason)
+            {
+                case MissionEndReason.Extracted:
+                    return $"Extracted: {breakdown.Survivors} of {breakdown.Participants} players made it out.";
+                case MissionEndReason.AllPlayersDown:
+                    return "No living players remain in the mission.";
+                case MissionEndReason.ObjectiveFailed:
+                    return $"\"{mission.FailedObjectiveLabel}\" can no longer be completed.";
+                default:
+                    return string.Empty;
+            }
+        }
+
+        private static string DescribeScore(MissionScoreBreakdown breakdown, bool succeeded)
+        {
+            string score = $"Combat {breakdown.Combat:N0}   +   Objectives {breakdown.Objectives:N0}";
+            if (!succeeded) return score + "   (bonuses are awarded only for a successful extraction)";
+            score += $"   +   Time {breakdown.TimeBonus:N0}   +   Accuracy {breakdown.AccuracyBonus:N0}" +
+                     $"   +   Survival {breakdown.SurvivalBonus:N0}";
+            return breakdown.SuccessBonus > 0 ? score + $"   +   Success {breakdown.SuccessBonus:N0}" : score;
         }
 
         private void BuildUi()
@@ -223,6 +273,8 @@ namespace ArcadeShooter.UI
             resultMission = Label("Mission", content.transform, 30, TextAlignmentOptions.Center);
             resultMission.color = MutedColor;
             Height(resultMission.gameObject, 40);
+            resultReason = Label("Outcome Reason", content.transform, 24, TextAlignmentOptions.Center);
+            Height(resultReason.gameObject, 34);
 
             GameObject summary = new GameObject("Team Summary", typeof(RectTransform));
             summary.transform.SetParent(content.transform, false);
@@ -232,6 +284,9 @@ namespace ArcadeShooter.UI
             durationValue = SummaryCard(summary.transform, "DURATION");
             scoreValue = SummaryCard(summary.transform, "TEAM SCORE");
             rankValue = SummaryCard(summary.transform, "MISSION RANK");
+            scoreBreakdown = Label("Score Breakdown", content.transform, 22, TextAlignmentOptions.Center);
+            scoreBreakdown.color = MutedColor;
+            Height(scoreBreakdown.gameObject, 34);
 
             GameObject header = TableRow("Statistics Header", content.transform, 42, new Color(0.08f, 0.18f, 0.23f));
             for (int column = 0; column < Columns.Length; column++)
@@ -242,11 +297,18 @@ namespace ArcadeShooter.UI
             }
             for (int row = 0; row < playerRows.Length; row++)
             {
-                playerRows[row] = TableRow("Player Statistics " + (row + 1), content.transform, 62,
+                playerRows[row] = TableRow("Player Statistics " + (row + 1), content.transform, 54,
                     row % 2 == 0 ? new Color(0.06f, 0.11f, 0.15f) : new Color(0.045f, 0.085f, 0.12f));
                 for (int column = 0; column < Columns.Length; column++)
                     playerCells[row, column] = TableCell(playerRows[row].transform, column, 27);
             }
+            teamRow = TableRow("Team Statistics", content.transform, 54, new Color(0.08f, 0.2f, 0.24f));
+            for (int column = 0; column < Columns.Length; column++)
+            {
+                teamCells[column] = TableCell(teamRow.transform, column, 27);
+                teamCells[column].color = SuccessColor;
+            }
+            teamCells[0].text = "TEAM";
             resultStatus = Label("Session Guidance", content.transform, 25, TextAlignmentOptions.Center);
             resultStatus.color = MutedColor;
             Height(resultStatus.gameObject, 48);

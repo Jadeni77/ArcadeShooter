@@ -17,7 +17,7 @@ namespace ArcadeShooter.Networking
         private AutomaticRifle rifle;
         private PlayerHealth health;
         private NetworkPlayer player;
-        private float nextShotAt;
+        private readonly ShotCadence cadence = new ShotCadence();
         private float reloadEndsAt;
         private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
 
@@ -75,13 +75,15 @@ namespace ArcadeShooter.Networking
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
         private void FireRpc(Vector3 direction)
         {
+            // The owner fires on its own clock; network jitter can bunch evenly spaced shots, so
+            // the host accepts a shot up to half an interval early without raising the fire rate.
+            float interval = 1f / rifle.RoundsPerSecond;
             if (!CombatAllowed || !player.InMatch || health.IsDead || reloading.Value || magazine.Value <= 0 ||
-                Time.time + 0.001f < nextShotAt || !ValidAim(direction))
+                !ValidAim(direction) || !cadence.TryAccept(Time.time, interval, interval * 0.5f))
             {
                 CorrectAmmoRpc(magazine.Value, reserve.Value, reloading.Value);
                 return;
             }
-            nextShotAt = Time.time + 1f / rifle.RoundsPerSecond;
             magazine.Value--;
             MissionScoreTracker.Instance?.RecordShot(OwnerClientId);
             // The existing prefab's camera is 0.7 m above its CharacterController root.

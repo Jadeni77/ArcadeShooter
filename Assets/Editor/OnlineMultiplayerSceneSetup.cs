@@ -76,7 +76,7 @@ namespace ArcadeShooter.Editor
                 avatarData.ApplyModifiedPropertiesWithoutUndo();
                 Transform deathLabel = FindChild(player.transform, "Death and Restart");
                 if (deathLabel != null)
-                    deathLabel.GetComponent<TextMeshProUGUI>().text = "YOU DIED\nLeave to start a new match";
+                    deathLabel.GetComponent<TextMeshProUGUI>().text = MissionSceneSetup.DeathMessage;
                 PrefabUtility.SaveAsPrefabAsset(player, PlayerPath);
             }
             finally { PrefabUtility.UnloadPrefabContents(player); }

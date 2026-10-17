@@ -9,6 +9,7 @@ using UnityEngine;
 namespace ArcadeShooter.Missions
 {
     public enum MissionState { Waiting, InProgress, ObjectivesCompleted, ExtractionActive, Success, Failure }
+    public enum MissionEndReason : byte { None, Extracted, AllPlayersDown, ObjectiveFailed }
 
     // One scene-owned mission. Only the server can mutate progression or publish a result.
     [RequireComponent(typeof(NetworkObject), typeof(MissionScoreTracker))]
@@ -21,6 +22,8 @@ namespace ArcadeShooter.Missions
         private readonly NetworkVariable<uint> completed = new NetworkVariable<uint>();
         private readonly NetworkVariable<double> startedAt = new NetworkVariable<double>();
         private readonly NetworkVariable<float> duration = new NetworkVariable<float>();
+        private readonly NetworkVariable<MissionEndReason> endReason = new NetworkVariable<MissionEndReason>();
+        private readonly NetworkVariable<int> failedObjective = new NetworkVariable<int>(-1);
         private readonly List<PlayerHealth> observedPlayers = new List<PlayerHealth>();
         private MissionScoreTracker scores;
 
@@ -34,6 +37,8 @@ namespace ArcadeShooter.Missions
         public float ElapsedSeconds => IsRunning && NetworkManager != null
             ? Mathf.Max(0f, (float)(NetworkManager.ServerTime.Time - startedAt.Value)) : duration.Value;
         public ExtractionPoint Extraction => extraction;
+        public MissionEndReason EndReason => endReason.Value;
+        public string FailedObjectiveLabel => GetObjectiveLabel(failedObjective.Value);
         public event Action Changed;
 
         private void Awake()
@@ -48,7 +53,11 @@ namespace ArcadeShooter.Missions
             completed.OnValueChanged += OnObjectivesChanged;
             if (IsServer)
                 foreach (MissionObjective objective in objectives)
-                    if (objective != null) objective.CompletionRequested += OnCompletionRequested;
+                    if (objective != null)
+                    {
+                        objective.CompletionRequested += OnCompletionRequested;
+                        objective.FailureReported += OnObjectiveFailed;
+                    }
             if (IsFinished) FreezePlayers();
             Changed?.Invoke();
         }
@@ -58,7 +67,11 @@ namespace ArcadeShooter.Missions
             state.OnValueChanged -= OnStateChanged;
             completed.OnValueChanged -= OnObjectivesChanged;
             foreach (MissionObjective objective in objectives)
-                if (objective != null) objective.CompletionRequested -= OnCompletionRequested;
+                if (objective != null)
+                {
+                    objective.CompletionRequested -= OnCompletionRequested;
+                    objective.FailureReported -= OnObjectiveFailed;
+                }
             foreach (PlayerHealth health in observedPlayers)
                 if (health != null) health.Died -= OnPlayerDied;
             observedPlayers.Clear();
@@ -127,6 +140,16 @@ namespace ArcadeShooter.Missions
         private void OnCompletionRequested(MissionObjective objective) => TryCompleteObjective(objective);
         private void OnPlayerDied() => CheckForFailure();
 
+        // A required objective that can no longer be completed ends the mission, so the host can
+        // replay instead of the squad being stuck in a mission that cannot finish.
+        private void OnObjectiveFailed(MissionObjective objective)
+        {
+            if (!IsServer || !IsRunning || IsObjectiveComplete(objective)) return;
+            // Losing the whole squad is reported as such, even if a zone noticed it first.
+            CheckForFailure();
+            Finish(false, MissionEndReason.ObjectiveFailed, Array.IndexOf(objectives, objective));
+        }
+
         private void Update()
         {
             if (!IsServer || !IsRunning) return;
@@ -138,22 +161,26 @@ namespace ArcadeShooter.Missions
         private void CheckForFailure()
         {
             if (!IsServer || !IsRunning) return;
-            if (!ConnectedPlayers().Any(p => !p.GetComponent<PlayerHealth>().IsDead)) Finish(false);
+            if (!ConnectedPlayers().Any(p => !p.GetComponent<PlayerHealth>().IsDead))
+                Finish(false, MissionEndReason.AllPlayersDown);
         }
 
         public void CompleteExtraction()
         {
             if (!IsServer || State != MissionState.ExtractionActive || extraction == null ||
                 !extraction.CanComplete) return;
-            Finish(true);
+            Finish(true, MissionEndReason.Extracted);
         }
 
-        private void Finish(bool success)
+        private void Finish(bool success, MissionEndReason reason, int objectiveIndex = -1)
         {
             if (!IsServer || !IsRunning) return;
             duration.Value = ElapsedSeconds;
+            endReason.Value = reason;
+            failedObjective.Value = objectiveIndex;
+            int survivors = ConnectedPlayers().Count(p => !p.GetComponent<PlayerHealth>().IsDead);
             // Publish the immutable score snapshot before publishing the terminal state.
-            scores.FinalizeResults(success, duration.Value, CompletedObjectives);
+            scores.FinalizeResults(success, duration.Value, CompletedObjectives, survivors);
             state.Value = success ? MissionState.Success : MissionState.Failure;
         }
 

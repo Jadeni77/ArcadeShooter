@@ -11,10 +11,12 @@ namespace ArcadeShooter.Missions
         [SerializeField] private MissionScoringRules scoring = new MissionScoringRules();
         private NetworkList<PlayerMissionStats> stats;
         private readonly NetworkVariable<int> teamScore = new NetworkVariable<int>();
+        private readonly NetworkVariable<MissionScoreBreakdown> breakdown = new NetworkVariable<MissionScoreBreakdown>();
         private readonly NetworkVariable<MissionRank> rank = new NetworkVariable<MissionRank>();
         private readonly NetworkVariable<float> duration = new NetworkVariable<float>();
         private readonly NetworkVariable<bool> resultsReady = new NetworkVariable<bool>();
         private readonly HashSet<ulong> creditedEnemies = new HashSet<ulong>();
+        private readonly List<PlayerMissionStats> snapshot = new List<PlayerMissionStats>();
         private MissionController mission;
         private bool begun;
         private int sharedObjectives;
@@ -22,6 +24,7 @@ namespace ArcadeShooter.Missions
         public static MissionScoreTracker Instance { get; private set; }
         public NetworkList<PlayerMissionStats> Stats => stats;
         public int TeamScore => teamScore.Value;
+        public MissionScoreBreakdown Breakdown => breakdown.Value;
         public MissionRank Rank => rank.Value;
         public float Duration => duration.Value;
         public bool ResultsReady => resultsReady.Value;
@@ -61,8 +64,15 @@ namespace ArcadeShooter.Missions
             creditedEnemies.Clear();
             sharedObjectives = 0;
             teamScore.Value = 0;
-            foreach (ulong id in playerIds)
-                if (FindPlayer(id) < 0) stats.Add(new PlayerMissionStats { ClientId = id });
+            foreach (PlayerMissionStats player in MissionRoster.CreateStats(playerIds)) stats.Add(player);
+        }
+
+        // NetworkList has no IEnumerable; copy it for read-only consumers such as the results UI.
+        public List<PlayerMissionStats> CopyStats(List<PlayerMissionStats> into)
+        {
+            into.Clear();
+            for (int i = 0; i < stats.Count; i++) into.Add(stats[i]);
+            return into;
         }
 
         public void RecordShot(ulong playerId)
@@ -111,17 +121,23 @@ namespace ArcadeShooter.Missions
                     stats[index] = value;
                 }
             }
-            UpdateTeamScore(false);
+            UpdateTeamScore();
         }
 
-        public void FinalizeResults(bool success, float elapsedSeconds, int completedObjectives)
+        public void FinalizeResults(bool success, float elapsedSeconds, int completedObjectives, int survivors)
         {
             if (!IsServer || !begun || ResultsReady) return;
             sharedObjectives = Mathf.Max(0, completedObjectives);
             duration.Value = float.IsNaN(elapsedSeconds) || float.IsInfinity(elapsedSeconds)
                 ? 0f : Mathf.Max(0f, elapsedSeconds);
-            UpdateTeamScore(success);
-            rank.Value = scoring.RankFor(teamScore.Value, success);
+            MissionTeamTotals totals = MissionTeamTotals.From(CopyStats(snapshot));
+            // Scoring receives the raw time so an invalid duration earns no time bonus; the
+            // sanitized value above is only for display.
+            MissionScoreBreakdown final = scoring.Calculate(totals.Score, sharedObjectives, success, elapsedSeconds,
+                totals.Hits, totals.ShotsFired, survivors, stats.Count);
+            breakdown.Value = final;
+            teamScore.Value = final.Total;
+            rank.Value = scoring.RankFor(final.Total, success);
             // Written last, so clients can wait for the complete result snapshot.
             resultsReady.Value = true;
         }
@@ -139,14 +155,15 @@ namespace ArcadeShooter.Missions
         {
             value.Score = scoring.CombatScore(value.Kills, value.Hits);
             stats[index] = value;
-            UpdateTeamScore(false);
+            UpdateTeamScore();
         }
 
-        private void UpdateTeamScore(bool success)
+        // The live score has no performance bonuses; those are only known when the mission ends.
+        private void UpdateTeamScore()
         {
             int combatTotal = 0;
             for (int i = 0; i < stats.Count; i++) combatTotal += stats[i].Score;
-            teamScore.Value = scoring.TeamScore(combatTotal, sharedObjectives, success);
+            teamScore.Value = scoring.Calculate(combatTotal, sharedObjectives, false, 0f, 0, 0, 0, 0).Total;
         }
     }
 }

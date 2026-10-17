@@ -11,6 +11,8 @@ namespace ArcadeShooter.Missions
         [SerializeField] private DangerZone dangerZone;
         public string Label => label;
         public event Action<MissionObjective> CompletionRequested;
+        // Raised when the backing zone stops for good, so the objective can never complete.
+        public event Action<MissionObjective> FailureReported;
 
         private void OnEnable()
         {
@@ -23,6 +25,7 @@ namespace ArcadeShooter.Missions
         private void OnZoneChanged(DangerZone zone)
         {
             if (zone.State == DangerZone.ZoneState.Cleared) CompletionRequested?.Invoke(this);
+            else if (zone.State == DangerZone.ZoneState.Failed) FailureReported?.Invoke(this);
         }
     }
 }

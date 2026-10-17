@@ -41,7 +41,7 @@ namespace ArcadeShooter.Missions
             Vector3 origin = player.transform.position + Vector3.up * 0.7f;
             Vector3 delta = transform.position - origin;
             if (delta.sqrMagnitude > interactionRange * interactionRange) return false;
-            // The sample collider is a trigger. Solid geometry blocks collection through walls.
+            // The sample has no collider; only solid geometry (not zone triggers) blocks collection through walls.
             return !Physics.Raycast(origin, delta.normalized, delta.magnitude,
                 Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
         }

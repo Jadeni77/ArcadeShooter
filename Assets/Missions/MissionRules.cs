@@ -27,6 +27,8 @@ namespace ArcadeShooter.Missions
     }
 
     // Cancel, rather than pause, when a required player leaves. A deadline uses server time.
+    // A teammate who dies or disconnects inside the area only shrinks the roster, so the timer keeps
+    // running; a larger roster (a newly required player) needs a fresh countdown.
     public sealed class ExtractionCountdown
     {
         public double Deadline { get; private set; } = -1;
@@ -35,11 +37,9 @@ namespace ArcadeShooter.Missions
         public bool Tick(double now, float duration, int living, int inside)
         {
             if (!MissionRules.AllLivingInside(living, inside)) { Reset(); return false; }
-            if (!Running || living != requiredPlayers)
-            {
+            if (!Running || living > requiredPlayers)
                 Deadline = now + Math.Max(0, duration);
-                requiredPlayers = living;
-            }
+            requiredPlayers = living;
             return now >= Deadline;
         }
         public void Reset()

@@ -47,10 +47,17 @@ namespace ArcadeShooter.Networking
         private const string GameplayScene = "FirstPersonTest";
         private const string MenuScene = "MainMenu";
         private const string MatchStatus = "Complete the mission. Press Esc to use Leave Game; click the map to aim again.";
+        // Prefixes every reason the host gives when it removes a client, so that client can tell
+        // "the host removed me" apart from "the host's session ended".
+        private const string RemovedByHostPrefix = "Removed by host: ";
 
         public static MultiplayerSessionController Instance { get; private set; }
         public bool CanManageMission => !busy && !leaving && session != null && session.IsHost &&
                                         network != null && network.IsHost;
+        public bool IsBusy => busy;
+        public string Status => status;
+        // The last replay or lobby-return failure, shown on the mission results screen.
+        public string LastActionError { get; private set; }
 
         private void Awake()
         {
@@ -178,6 +185,7 @@ namespace ArcadeShooter.Networking
             if (matchStarted && (MissionController.Instance == null || !MissionController.Instance.IsFinished)) return;
             busy = true;
             matchStarted = true; // Also rejects new connections during the lobby lock request.
+            LastActionError = null;
             status = sceneName == GameplayScene ? "Loading mission..." : "Returning to lobby...";
             bool loadStarted = false;
             Refresh();
@@ -188,13 +196,9 @@ namespace ArcadeShooter.Networking
                 await host.SavePropertiesAsync();
                 if (leaving || session == null || !network.IsHost) return;
                 SubscribeSceneEvents();
-                // Fresh player objects reset health, ammo, input, camera, HUD, and transient feedback.
-                foreach (NetworkClient client in network.ConnectedClients.Values.ToArray())
-                    if (client.PlayerObject != null && client.PlayerObject.IsSpawned)
-                    {
-                        client.PlayerObject.GetComponent<NetworkPlayer>()?.EndMatch();
-                        client.PlayerObject.Despawn();
-                    }
+                // A single-mode network load despawns every avatar and wave enemy (all spawned to be
+                // destroyed with the scene) only once it has started, so a refused load keeps the
+                // current match intact. Fresh avatars reset health, ammo, input, camera, and HUD.
                 SceneEventProgressStatus result = network.SceneManager.LoadScene(sceneName, LoadSceneMode.Single);
                 if (result != SceneEventProgressStatus.Started)
                     throw new InvalidOperationException("Network scene load failed: " + result);
@@ -205,6 +209,7 @@ namespace ArcadeShooter.Networking
                 matchStarted = SceneManager.GetActiveScene().name == GameplayScene;
                 if (!matchStarted) await UnlockLobbyAsync();
                 status = "Could not load scene: " + exception.Message;
+                LastActionError = status;
                 Debug.LogError(exception);
             }
             finally
@@ -250,7 +255,7 @@ namespace ArcadeShooter.Networking
             {
                 foreach (ulong id in timedOut)
                     if (id != network.LocalClientId && network.ConnectedClients.ContainsKey(id))
-                        network.DisconnectClient(id, "Scene loading timed out. Rejoin from the lobby.");
+                        network.DisconnectClient(id, RemovedByHostPrefix + "scene loading timed out.");
                 if (!completed.Contains(network.LocalClientId))
                 {
                     _ = EndFailedLoadAsync("The host could not finish loading the scene.");
@@ -387,10 +392,28 @@ namespace ArcadeShooter.Networking
         private void OnDisconnected(ulong clientId)
         {
             if (leaving || session == null) return;
-            if (clientId == network.LocalClientId || !network.IsServer)
-                ReturnToMenu("Host disconnected. Session ended.");
-            else
+            if (clientId != network.LocalClientId && network.IsServer)
+            {
                 Refresh();
+                return;
+            }
+            // NGO reports the host's reason when it removed this client; otherwise the session ended.
+            string reason = network.DisconnectReason;
+            if (!network.IsServer && reason != null && reason.StartsWith(RemovedByHostPrefix, StringComparison.Ordinal))
+            {
+                // The session continues without this client, so leave it to keep the lobby list accurate.
+                ISession removedFrom = session;
+                ReturnToMenu(reason);
+                _ = LeaveQuietlyAsync(removedFrom);
+                return;
+            }
+            ReturnToMenu("Host disconnected. Session ended.");
+        }
+
+        private static async Task LeaveQuietlyAsync(ISession removedFrom)
+        {
+            try { await removedFrom.LeaveAsync(); }
+            catch (Exception exception) { Debug.LogWarning("Session cleanup: " + exception.Message); }
         }
 
         private void OnSessionRemoved()
