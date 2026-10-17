@@ -32,7 +32,7 @@ Use a merge commit for a `develop` → `main` release PR unless a reviewed chang
 Separate active branch rulesets match the exact branch names `main` and `develop`. For each branch:
 
 - Require a PR before merging; block force pushes and branch deletion.
-- Require one approving human review; dismiss stale approvals on changed diffs and require conversations to be resolved. The owner is currently the only collaborator and cannot approve their own PR, so another reviewer with write access must be added before ordinary future PRs can merge.
+- Dismiss stale approvals on changed diffs and require conversations to be resolved. Require one approving human review once a second reviewer with write access exists. As of 2026-10-17 both rulesets require 0 approvals, because the owner is the only collaborator and cannot approve their own PRs; the owner merged PRs #1–#7 without a review.
 - Apply the rules to administrators and avoid standing bypass permissions. Any exceptional bypass must be narrow, auditable, and explicitly approved by the project owner.
 - Once CI exists, require the actual, stable check names that have reported successfully (for example, a Unity compile/import check and focused tests). Do not require nonexistent checks or enable a check gate before CI can produce it. Consider stricter checks for `main` releases after the pipeline is proven.
 
@@ -44,7 +44,7 @@ The live remote was verified before mutation: `main` was the only remote branch 
 
 1. **Done:** Create and publish `develop` once at `0809580`; create local `feature/repository-bootstrap` at the same commit. All pre-existing working-tree changes carried over without reset or stash.
 2. **Done:** Change the GitHub default branch from `main` to `develop`.
-3. **Done:** Make the repository public and enable active rulesets for `main` and `develop`. The bootstrap PR's author is the sole collaborator, so the owner explicitly approved a one-time PR-only bypass to merge it; the bypass must be removed afterward. Future ordinary PRs need a different authorized human reviewer. Required CI checks can be added once a workflow reports stable check names.
+3. **Done:** Make the repository public and enable active rulesets for `main` and `develop`. The bootstrap PR's author is the sole collaborator, so the owner explicitly approved a one-time PR-only bypass to merge it; the bypass was removed afterward (neither ruleset has bypass actors as of 2026-10-17). Required CI checks can be added once a workflow reports stable check names.
 4. **Done:** Commit `80cbda0` recorded the one-time Unity helper deletion, resolved lockfile, and quality serialization update on `feature/repository-bootstrap`. The project documents are included on this branch. `ProjectSettings/ProjectSettings.asset` remains uncommitted while its cloud project and organization fields await confirmation.
 5. **Approved:** [PR #1](https://github.com/Jadeni77/ArcadeShooter/pull/1) targets `develop` from `feature/repository-bootstrap`. The project owner explicitly approved its merge after both rulesets were applied. The PR and GitHub history are the source of truth for its live merge state.
 6. **Future:** Keep `main` at its historical initial commit until a tested, explicitly approved release is ready. Promote that release through a `develop` → `main` PR. Do not call the initial scaffold a stable production release.

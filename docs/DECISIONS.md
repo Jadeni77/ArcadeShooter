@@ -30,18 +30,19 @@ Use this file to distinguish decisions the project owner has made from technical
 
 | Topic | Proposal | Why it is open |
 | --- | --- | --- |
-| Online stack | Implemented in M5; see D-014. | Two-client functional behavior and Dashboard service settings still need verification. |
-| Hosting | Implemented in M5; see D-015 and D-016. | Two-client latency, disconnects, and operating constraints still need verification. |
+| Online stack | Implemented in M5; see D-014. | Two-client sessions over Relay were exercised in the Editor with Multiplayer Play Mode during M6 (2026-10-17). A recorded two-machine run and a review of Dashboard service usage and billing are still open. |
+| Hosting | Implemented in M5; see D-015 and D-016. | Disconnects, a client removed by the host, and the host leaving were exercised during M6. Latency under real network conditions and three or four players are still unmeasured. |
 | Reuse | Use small mission, weapon, enemy, and encounter definitions where a second use case justifies them. | Avoid premature frameworks while preserving room for new content. |
 | Audio | Use AudioSource and an AudioMixer for weapons, enemies, ambience, music, and UI as the audio slice grows. | No game audio assets or mixer exist yet. |
 
 ## Questions to resolve at the relevant milestone
 
-1. How should the existing Interact action be used in the eventual mission loop? The first gun uses keyboard R for Reload. (Later mission milestone)
+1. How should the existing Interact action be used in the eventual mission loop? Resolved in M6 (D-017): E collects the research sample after the host checks range and line of sight.
 2. What movement replication and validation model gives responsive controls while preserving host authority over consequential state? (M5/M6)
 3. Does the M2 hitscan rifle's eight rounds per second, 30-round magazine, 90-round reserve, and 1.6-second reload feel right in human play testing? (Before networked combat)
-4. What should happen when the host leaves: end the match, allow reconnect, or migrate host state? The first prototype can choose a simple documented behavior. (M5/M8)
+4. What should happen when the host leaves: end the match, allow reconnect, or migrate host state? Decided for the prototype in D-016: the session ends and clients return to the menu. Reconnect or host migration remain options for later. (M8)
 5. How are players invited or matched beyond the first join-code flow? (After M8)
-6. What concrete scoring, rewards, progression, and retention systems should follow a proven mission loop? (After M8)
+6. What concrete scoring, rewards, progression, and retention systems should follow a proven mission loop? M6 added per-mission scoring and ranks (D-018); persistent rewards, progression, and retention remain open. (After M8)
 7. What online service setup and usage terms apply before enabling external services? (M5)
-8. Does the GitHub repository plan and reviewer roster support enforceable required human approvals on both protected branches? Confirm during the repository bootstrap. (Before the first PR merge)
+8. Does the GitHub repository plan and reviewer roster support enforceable required human approvals on both protected branches? As of 2026-10-17, both rulesets require a PR and resolved conversations but 0 approvals, because the owner is the only collaborator and cannot approve their own PRs. Raise it to one approval when a second reviewer with write access joins.
+9. After a mission, should the whole squad return to a shared lobby without the join code, whichever player chooses to leave? The owner expects this (2026-10-17). Today only the host's **Return to Lobby** keeps the session; **Leave Session** exits to the main menu. (Later UI/UX milestone)
