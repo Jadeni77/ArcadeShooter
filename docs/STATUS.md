@@ -91,8 +91,4 @@ The owner's checkouts also hold other uncommitted local edits (materials, scenes
 
 ## Next milestone
 
-M6 is merged. M7 (validate and extend; see [ROADMAP.md](ROADMAP.md)) starts when the owner gives its brief. Candidate follow-ups from M6:
-
-- A shared post-mission lobby that the squad returns to without the join code (owner request, later UI/UX milestone), and clearer **Leave Session** versus **Return to Lobby** wording on the results screen.
-- A three- or four-player test and a recorded run with two standalone players on separate machines.
-- Probing a possible race when a client shot reaches the host in the same frame its reload finishes, using the Multiplayer Tools network simulator. Adding that package needs owner approval.
+M6 is merged. The owner's next milestones are M7 (weapon models and advanced animations), M8 (environment graphics, sound, and music), and M9 (progression and replayability). Each starts when the owner gives its brief, and only the active milestone gets built. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md) and are not to be built earlier. Follow-ups from M6 that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md).
