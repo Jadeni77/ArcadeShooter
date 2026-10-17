@@ -16,6 +16,14 @@ The host alone runs `MeleeEnemy` AI, selects the nearest living in-match player,
 
 The host has gameplay authority, but the host player is also a player and has the same local input path. This is a player-hosted prototype: host migration, late join, reconnect, dedicated servers, and production anti-cheat are deferred. Two-client observation remains required before claiming the online acceptance criteria are verified.
 
+## M6 mission implementation
+
+The scene-owned `MissionController` holds the authoritative Waiting, In Progress, Objectives Completed, Extraction Active, Success, and Failure state, plus a synchronized completion mask for a small array of `MissionObjective` components. Each zone objective observes its existing `DangerZone.Changed` event. The research sample sends an E interaction request that the host validates against the sending connection, living player, map, range, and unobstructed path. Completed bits reject duplicate credit. The scene uses existing three-room geometry, two danger zones, a new sample, and a marked extraction area.
+
+`ExtractionPoint` recomputes its roster from connected living player objects on the host, checks their world positions against its trigger volume, and synchronizes the countdown deadline. The timer restarts if a required player leaves; dead and disconnected players no longer count. At least one living player is required. The mission ends once, and the final state stops combat and encounter progression. Host-scored enemy damage, kills, and accepted shots populate a replicated `MissionScoreTracker`. Only the sample collector receives an individual objective count; each completed objective contributes once to team score. Scoring constants and rank thresholds are serialized in `MissionScoringRules`. The mission HUD reads replicated state and shows final results.
+
+`MultiplayerSessionController` preserves the Session/Relay connection for host-controlled replay and lobby return. Every mission load creates fresh player network objects after the scene loads, resetting health, ammo, input, and visual state. Spawned wave enemies are tied to the scene, so reloading it discards encounter objects. The network menu suppresses its duplicate `NetworkManager` when reloaded while the original persistent session system remains active. Host departure still ends the session as in M5. Movement ownership and trust remain unchanged from M5. M6 two-client behavior is pending verification.
+
 ## Pre-M5 baseline (historical)
 
 | Area | Observed state |

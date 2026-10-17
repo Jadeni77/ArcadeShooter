@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.Netcode;
+using ArcadeShooter.Missions;
 
 namespace ArcadeShooter.Combat
 {
@@ -39,7 +40,8 @@ namespace ArcadeShooter.Combat
 
         private void Update()
         {
-            if (IsSpawned && IsServer && Health <= 0f && Time.time >= resetAt)
+            if (IsSpawned && IsServer && Health <= 0f && Time.time >= resetAt &&
+                (MissionController.Instance == null || MissionController.Instance.IsRunning))
                 ResetTarget();
             else if (Health > 0f && flashUntil > 0f && Time.time >= flashUntil)
             {
@@ -50,7 +52,8 @@ namespace ArcadeShooter.Combat
 
         public bool ApplyDamage(float amount, Vector3 hitPoint)
         {
-            if (!IsServer || Health <= 0f || amount <= 0f)
+            if (!IsServer || Health <= 0f || amount <= 0f || float.IsNaN(amount) || float.IsInfinity(amount) ||
+                (MissionController.Instance != null && !MissionController.Instance.IsRunning))
                 return false;
 
             health.Value = Mathf.Max(0f, Health - amount);

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using ArcadeShooter.Player;
+using ArcadeShooter.Missions;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -73,8 +74,17 @@ namespace ArcadeShooter.Encounters
         private void OnStateChanged(int previous, int current) => Changed?.Invoke(this);
         private void OnIntegerChanged(int previous, int current) => Changed?.Invoke(this);
 
+        private static bool MissionAllowsProgress => MissionController.Instance == null || MissionController.Instance.IsRunning;
+
         private void Update()
         {
+            if (IsServer && !MissionAllowsProgress)
+            {
+                if (pendingWave != null) StopCoroutine(pendingWave);
+                pendingWave = null;
+                spawner.StopTracking();
+                return;
+            }
             if (!IsSpawned || !IsServer ||
                 (State != ZoneState.Warning && State != ZoneState.Active)) return;
             if (FindLivingPlayer() != null) return;
@@ -86,10 +96,10 @@ namespace ArcadeShooter.Encounters
 
         private void OnTriggerEnter(Collider other)
         {
-            if (!IsSpawned || !IsServer || State != ZoneState.Inactive ||
+            if (!IsSpawned || !IsServer || !MissionAllowsProgress || State != ZoneState.Inactive ||
                 !(other is CharacterController)) return;
             PlayerHealth player = other.GetComponent<PlayerHealth>();
-            if (player == null || player.IsDead) return;
+            if (player == null || player.IsDead || !player.GetComponent<ArcadeShooter.Networking.NetworkPlayer>().InMatch) return;
             Activate();
         }
 
@@ -104,7 +114,7 @@ namespace ArcadeShooter.Encounters
         {
             if (delay > 0f) yield return new WaitForSeconds(delay);
             pendingWave = null;
-            if (State == ZoneState.Failed || State == ZoneState.Cleared) yield break;
+            if (!MissionAllowsProgress || State == ZoneState.Failed || State == ZoneState.Cleared) yield break;
             PlayerHealth player = FindLivingPlayer();
             if (player == null || !spawner.TrySpawnWave(waveIndex, player.transform))
             {
@@ -118,12 +128,12 @@ namespace ArcadeShooter.Encounters
 
         private void OnRemainingChanged(int count)
         {
-            if (IsServer) remainingEnemies.Value = count;
+            if (IsServer && MissionAllowsProgress) remainingEnemies.Value = count;
         }
 
         private void OnWaveCompleted()
         {
-            if (!IsServer || State != ZoneState.Active) return;
+            if (!IsServer || !MissionAllowsProgress || State != ZoneState.Active) return;
             if (CurrentWave >= spawner.WaveCount)
             {
                 state.Value = (int)ZoneState.Cleared;
