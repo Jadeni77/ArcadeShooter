@@ -1,0 +1,109 @@
+{
+  "floor_tile_basic.obj": {
+    "source": "map/meshes/floor_tile_basic_mesh.tscn",
+    "materials": [
+      "main",
+      "dark_grey"
+    ],
+    "vertices": 670
+  },
+  "wall_1.obj": {
+    "source": "map/meshes/wall_1_mesh.tscn",
+    "materials": [
+      "main",
+      "accent",
+      "light",
+      "dark_grey"
+    ],
+    "vertices": 2100
+  },
+  "column_slim.obj": {
+    "source": "map/meshes/column_slim_mesh.tscn",
+    "materials": [
+      "dark_grey",
+      "main",
+      "pipes"
+    ],
+    "vertices": 520
+  },
+  "props_computer.obj": {
+    "source": "props/meshes/props_computer_mesh.tscn",
+    "materials": [
+      "main",
+      "dark_grey",
+      "black",
+      "accent",
+      "dark_accent"
+    ],
+    "vertices": 994
+  },
+  "props_shelf.obj": {
+    "source": "props/meshes/props_shelf_mesh.tscn",
+    "materials": [
+      "accent",
+      "main",
+      "dark_grey"
+    ],
+    "vertices": 680
+  },
+  "props_crate.obj": {
+    "source": "props/meshes/props_crate_mesh.tscn",
+    "materials": [
+      "main",
+      "accent",
+      "dark_grey",
+      "dark_accent",
+      "black"
+    ],
+    "vertices": 5105
+  },
+  "roof_tile_details.obj": {
+    "source": "map/meshes/roof_tile_details_mesh.tscn",
+    "materials": [
+      "accent",
+      "dark_accent",
+      "main",
+      "dark_grey"
+    ],
+    "vertices": 1414
+  },
+  "roof_tile_empty.obj": {
+    "source": "map/meshes/roof_tile_empty_mesh.tscn",
+    "materials": [
+      "main",
+      "dark_grey"
+    ],
+    "vertices": 112
+  },
+  "door_double_l.obj": {
+    "source": "doors/meshes/door_double_l_mesh.tscn",
+    "materials": [
+      "main",
+      "accent",
+      "dark_accent",
+      "dark_grey",
+      "black"
+    ],
+    "vertices": 1541
+  },
+  "door_double_r.obj": {
+    "source": "doors/meshes/door_double_r_mesh.tscn",
+    "materials": [
+      "main",
+      "accent",
+      "dark_accent",
+      "dark_grey",
+      "black"
+    ],
+    "vertices": 1541
+  },
+  "details_vent_1.obj": {
+    "source": "details/meshes/details_vent_1_mesh.tscn",
+    "materials": [
+      "black",
+      "accent",
+      "dark_accent"
+    ],
+    "vertices": 288
+  }
+}

@@ -2,6 +2,12 @@
 
 This document records the current implementation and preserves the earlier planning baseline below it.
 
+## M8A environment presentation
+
+`FirstPersonTest` retains its gameplay-owned `Three Room Graybox` colliders and saved NavMeshSurface data. A separate `Environment Visuals` root holds imported CC0 modular meshes, project-authored trim, and non-shadowing practical lights. It has no colliders, so decoration cannot block player movement, hitscan, or AI routes. The original spawn points, danger-zone triggers, mission objectives, extraction, and scene network objects stay in place. The scene is still a freely explorable first-person map.
+
+URP Lit materials provide a shared facility palette; the approved Poly Haven normal/diffuse maps supply floor detail. The scene's global Volume uses Neutral tonemapping and low Bloom, and the owner player camera enables post-processing. The enemy uses a contrasting project-authored material on its existing body renderer and keeps its hit collider, agent, and `EnemyFeedback` color cues. The editor-only `EnvironmentVisualsSceneSetup` generated the scene assets; rerunning older scene generators would replace later milestone content. See [ENVIRONMENT_VISUALS_TESTING.md](ENVIRONMENT_VISUALS_TESTING.md) for the runtime checks still required.
+
 ## Version control and delivery
 
 `develop` is the staging branch and the base for feature and normal fix PRs. Approved releases move from `develop` to `main` by PR; urgent production hotfixes start from `main` and are brought back into `develop` by PR. `main` and `develop` receive no direct commits or pushes after the approved bootstrap. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for branch names, reviews, checks, and the live branch protection. This workflow governs delivery; it does not change the gameplay architecture below.
