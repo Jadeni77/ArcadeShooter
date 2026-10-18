@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using ArcadeShooter.Combat;
 
 namespace ArcadeShooter.Player
 {
@@ -14,10 +15,12 @@ namespace ArcadeShooter.Player
 
         private InputAction lookAction;
         private float pitch;
+        private WeaponAim weaponAim;
 
         private void Awake()
         {
             lookAction = GetComponent<PlayerInput>().actions.FindAction("Look", true);
+            weaponAim = GetComponent<WeaponAim>();
             if (cameraPivot == null)
                 Debug.LogError("FirstPersonLook needs a camera pivot.", this);
         }
@@ -48,7 +51,8 @@ namespace ArcadeShooter.Player
             if (cameraPivot == null)
                 return;
 
-            Vector2 delta = lookAction.ReadValue<Vector2>() * mouseSensitivity;
+            Vector2 delta = lookAction.ReadValue<Vector2>() * mouseSensitivity *
+                (weaponAim != null ? weaponAim.SensitivityScale : 1f);
             transform.Rotate(Vector3.up, delta.x, Space.Self);
             pitch = Mathf.Clamp(pitch - delta.y, -maxPitch, maxPitch);
             cameraPivot.localRotation = Quaternion.Euler(pitch, 0f, 0f);

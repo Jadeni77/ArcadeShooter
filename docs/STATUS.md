@@ -4,6 +4,15 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
 
 ## Current state
 
+### Milestone 7: weapon visuals and animations (feature branch, pending review)
+
+- `feature/weapon-visuals-animations` starts from `develop` at `d6b71f3` (M6 PR #7 and follow-up PRs #8–#9 merged). The owner's older checkout and its uncommitted changes remain untouched.
+- The assault rifle has a more detailed project-made primitive silhouette and a separate first-person presentation root. The remote avatar has a visible third-person rifle that recoils on shot broadcasts and lowers during its replicated reload state. Neither visual affects host-owned hit, ammunition, or reload decisions.
+- Holding right mouse button transitions the local weapon toward its sights, narrows camera FOV, and scales look sensitivity. The camera ray remains the shot ray. The first-person view also has configurable sway, walk bob, sprint offset, recoil recovery, and a timed magazine movement within the existing reload duration. The local rifle waits for authoritative reload completion in network play; the standalone timer remains available without a network spawn.
+- `WeaponAudio` plays the existing project-made gunfire, impact, and reload clips. Optional empty, magazine removal, and magazine insertion clip slots are ready but unassigned. `WeaponRigAnimator` can drive a future rigged weapon/hands Animator through Fire, Reloading, ReloadProgress, and Aim parameters.
+- No rigged first-person arms or hands exist in the project. External asset import requires owner approval, so no external model or animation was imported. A CC0 candidate is [Quaternius Ultimate Guns Pack](https://quaternius.com/packs/ultimategun.html); it supplies weapon models, not a verified matching first-person hand rig. The current weapon and remote representation remain project-made interim geometry.
+- Unity 6000.6.5f1 batch-imported the prefab through Editor APIs and compiled the final sources without C# errors. The final EditMode run passed all 36 tests (34 existing and 2 new weapon presentation checks). The human local feel/clipping and two-client presentation checks in [WEAPON_VISUALS_TESTING.md](WEAPON_VISUALS_TESTING.md) have not run yet. Rigged hands, articulated hand movement, and separate magazine/empty sounds remain asset-dependent.
+
 ### Milestone 6: missions, extraction, and scoring (merged by PR #7 on 2026-10-17)
 
 - M6 was developed on `feature/mission-extraction-scoring` from the M5 merge (`48dc43d`) in a separate Git worktree, so the owner's original checkout and its uncommitted edits stayed untouched. [PR #7](https://github.com/Jadeni77/ArcadeShooter/pull/7) was squash-merged into `develop` on 2026-10-17 as `ef9ca42`.

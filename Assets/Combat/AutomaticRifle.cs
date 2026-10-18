@@ -9,7 +9,7 @@ namespace ArcadeShooter.Combat
 {
     // Owns ammo, fire timing, reload timing, and hits. Reloads finish on this timer alone;
     // view-model animation such as WeaponViewModel only observes this state.
-    [RequireComponent(typeof(PlayerInput), typeof(AudioSource))]
+    [RequireComponent(typeof(PlayerInput), typeof(WeaponAudio))]
     public sealed class AutomaticRifle : MonoBehaviour
     {
         [Header("Weapon tuning")]
@@ -29,19 +29,17 @@ namespace ArcadeShooter.Combat
 
         [Header("Feedback")]
         [SerializeField, Min(0f)] private float flashDuration = 0.055f;
-        [SerializeField] private AudioClip gunfireSound;
-        [SerializeField] private AudioClip impactSound;
-        [SerializeField] private AudioClip reloadSound;
 
         private InputAction attackAction;
         private InputAction reloadAction;
-        private AudioSource audioSource;
+        private WeaponAudio weaponAudio;
         private int magazine;
         private int reserve;
         private float nextShotAt;
         private float reloadStartedAt;
         private float reloadEndsAt;
         private float flashEndsAt;
+        private float nextEmptySoundAt;
         private bool reloading;
         private NetworkRifle networkRifle;
         private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
@@ -62,13 +60,15 @@ namespace ArcadeShooter.Combat
 
         // Raised after each shot's gameplay effects have been applied.
         public event Action Fired;
+        public event Action ReloadStarted;
+        public event Action ReloadFinished;
 
         private void Awake()
         {
             PlayerInput input = GetComponent<PlayerInput>();
             attackAction = input.actions.FindAction("Attack", true);
             reloadAction = input.actions.FindAction("Reload", true);
-            audioSource = GetComponent<AudioSource>();
+            weaponAudio = GetComponent<WeaponAudio>();
             networkRifle = GetComponent<NetworkRifle>();
             if (aimCamera == null)
                 Debug.LogError("AutomaticRifle needs an aim camera.", this);
@@ -86,12 +86,14 @@ namespace ArcadeShooter.Combat
                 if (reloading)
                 {
                     reloading = false;
+                    ReloadFinished?.Invoke();
                     RefreshHud();
                 }
                 if (muzzleFlash != null) muzzleFlash.SetActive(false);
                 return;
             }
-            if (reloading && Time.time >= reloadEndsAt)
+            if (reloading && Time.time >= reloadEndsAt &&
+                (networkRifle == null || !networkRifle.IsSpawned))
                 CompleteReload();
 
             if (Cursor.lockState == CursorLockMode.Locked && reloadAction.WasPressedThisFrame())
@@ -110,7 +112,11 @@ namespace ArcadeShooter.Combat
                 return false;
             if (magazine <= 0)
             {
-                BeginReload();
+                if (!BeginReload() && Time.time >= nextEmptySoundAt)
+                {
+                    weaponAudio.PlayEmpty();
+                    nextEmptySoundAt = Time.time + 0.25f;
+                }
                 return false;
             }
 
@@ -121,7 +127,7 @@ namespace ArcadeShooter.Combat
                 muzzleFlash.SetActive(true);
                 flashEndsAt = Time.time + flashDuration;
             }
-            Play(gunfireSound);
+            weaponAudio.PlayGunfire();
 
             Ray ray = new Ray(aimCamera.transform.position, aimCamera.transform.forward);
             if (networkRifle != null)
@@ -131,7 +137,7 @@ namespace ArcadeShooter.Combat
                 if (impactPrefab != null)
                     Instantiate(impactPrefab, hit.point + hit.normal * 0.015f,
                         Quaternion.FromToRotation(Vector3.forward, hit.normal));
-                Play(impactSound);
+                weaponAudio.PlayImpact();
                 IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
                 if (damageable != null && damageable.ApplyDamage(damage, hit.point))
                     hud?.ConfirmHit();
@@ -143,16 +149,17 @@ namespace ArcadeShooter.Combat
             return true;
         }
 
-        private void BeginReload()
+        private bool BeginReload()
         {
             if (!CombatAllowed || reloading || magazine >= magazineSize || reserve <= 0)
-                return;
+                return false;
             reloading = true;
             reloadStartedAt = Time.time;
             reloadEndsAt = reloadStartedAt + reloadDuration;
-            Play(reloadSound);
+            ReloadStarted?.Invoke();
             if (networkRifle != null) networkRifle.RequestReload();
             RefreshHud();
+            return true;
         }
 
         public void SyncAmmo(int authoritativeMagazine, int authoritativeReserve, bool authoritativeReloading)
@@ -164,15 +171,19 @@ namespace ArcadeShooter.Combat
                 reloading = true;
                 reloadStartedAt = Time.time;
                 reloadEndsAt = Time.time + reloadDuration;
+                ReloadStarted?.Invoke();
             }
-            else if (!authoritativeReloading)
+            else if (!authoritativeReloading && reloading)
+            {
                 reloading = false;
+                ReloadFinished?.Invoke();
+            }
             RefreshHud();
         }
 
         public void PlayRemoteShot()
         {
-            Play(gunfireSound);
+            weaponAudio.PlayGunfire();
         }
 
         private void CompleteReload()
@@ -182,13 +193,8 @@ namespace ArcadeShooter.Combat
             magazine += transferred;
             reserve -= transferred;
             reloading = false;
+            ReloadFinished?.Invoke();
             RefreshHud();
-        }
-
-        private void Play(AudioClip clip)
-        {
-            if (clip != null)
-                audioSource.PlayOneShot(clip);
         }
 
         private void RefreshHud() => hud?.SetAmmo(magazine, reserve, reloading);

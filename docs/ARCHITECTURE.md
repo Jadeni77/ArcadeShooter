@@ -6,6 +6,12 @@ This document records the current implementation and preserves the earlier plann
 
 `develop` is the staging branch and the base for feature and normal fix PRs. Approved releases move from `develop` to `main` by PR; urgent production hotfixes start from `main` and are brought back into `develop` by PR. `main` and `develop` receive no direct commits or pushes after the approved bootstrap. See [GIT_WORKFLOW.md](GIT_WORKFLOW.md) for branch names, reviews, checks, and the live branch protection. This workflow governs delivery; it does not change the gameplay architecture below.
 
+## M7 weapon presentation
+
+`AutomaticRifle` still owns local input, the camera-based shot ray, and local ammunition prediction. `NetworkRifle` remains the host authority for accepted shots, damage, ammunition, and reload completion. `WeaponAim` reads the right-mouse Aim action and changes only local FOV and look sensitivity. `WeaponViewModel` is attached to the replaceable first-person visual root; it reads rifle state and input for sway, bob, sprint pose, recoil, and the interim magazine motion. `WeaponAudio` observes reload starts and plays optional sounds; missing clip slots do not change game state. `WeaponRigAnimator` is an optional adapter for future imported rigged hands and weapon animation assets.
+
+The local first-person model remains under its owner's camera, which is disabled on remote player objects. A separate non-networked rifle lives under the remote avatar body. `NetworkRifle` relays only existing shot events and the authoritative reload flag to `RemoteWeaponPresentation`; it does not synchronize per-frame cosmetic poses. New visual meshes or rigged hands can replace these presentation children without changing combat code. See [WEAPON_VISUALS_TESTING.md](WEAPON_VISUALS_TESTING.md) for asset gaps and manual validation.
+
 ## M5 online implementation
 
 Unity 6000.6.5f1 uses Netcode for GameObjects 2.13.3, Multiplayer Services 2.4.0, and Multiplayer Play Mode 3.0.0. `MainMenu` is the first build scene; the host starts `FirstPersonTest` through NGO scene management. `MultiplayerSessionController` initializes Unity Services, signs in anonymously with a per-process profile, creates a private four-player Session backed by Relay, joins by code, locks the lobby before starting, and ends the session when the host leaves. It rejects connections after the match begins. See [MULTIPLAYER_TESTING.md](MULTIPLAYER_TESTING.md) for service setup and test steps.
