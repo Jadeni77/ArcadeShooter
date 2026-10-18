@@ -39,6 +39,7 @@ namespace ArcadeShooter.Networking
                 reserve.Value = rifle.StartingReserve;
             }
             if (IsOwner) rifle.SyncAmmo(magazine.Value, reserve.Value, reloading.Value);
+            else player.SetRemoteReload(reloading.Value);
         }
 
         public override void OnNetworkDespawn()
@@ -146,7 +147,15 @@ namespace ArcadeShooter.Networking
         }
 
         private void OnAmmoChanged(int oldValue, int newValue) => SyncOwner();
-        private void OnReloadChanged(bool oldValue, bool newValue) => SyncOwner();
+        private void OnReloadChanged(bool oldValue, bool newValue)
+        {
+            SyncOwner();
+            if (!IsOwner)
+            {
+                player.SetRemoteReload(newValue);
+                if (newValue) GetComponent<WeaponAudio>()?.PlayRemoteReload();
+            }
+        }
         private void SyncOwner()
         {
             if (IsOwner) rifle.SyncAmmo(magazine.Value, reserve.Value, reloading.Value);

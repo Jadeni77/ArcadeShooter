@@ -84,10 +84,13 @@ namespace ArcadeShooter.Editor
                 serialized.FindProperty("muzzleFlash").objectReferenceValue = muzzle;
                 serialized.FindProperty("impactPrefab").objectReferenceValue = impact;
                 serialized.FindProperty("hud").objectReferenceValue = hud;
-                serialized.FindProperty("gunfireSound").objectReferenceValue = Audio("Assets/Audio/Gunfire.wav");
-                serialized.FindProperty("impactSound").objectReferenceValue = Audio("Assets/Audio/Impact.wav");
-                serialized.FindProperty("reloadSound").objectReferenceValue = Audio("Assets/Audio/Reload.wav");
                 serialized.ApplyModifiedPropertiesWithoutUndo();
+                SerializedObject sounds = new SerializedObject(root.GetComponent<WeaponAudio>());
+                sounds.FindProperty("rifle").objectReferenceValue = weapon;
+                sounds.FindProperty("gunfire").objectReferenceValue = Audio("Assets/Audio/Gunfire.wav");
+                sounds.FindProperty("impact").objectReferenceValue = Audio("Assets/Audio/Impact.wav");
+                sounds.FindProperty("reloadHandling").objectReferenceValue = Audio("Assets/Audio/Reload.wav");
+                sounds.ApplyModifiedPropertiesWithoutUndo();
                 SerializedObject view = new SerializedObject(model.AddComponent<WeaponViewModel>());
                 view.FindProperty("rifle").objectReferenceValue = weapon;
                 view.ApplyModifiedPropertiesWithoutUndo();

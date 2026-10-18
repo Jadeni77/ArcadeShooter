@@ -19,6 +19,7 @@ namespace ArcadeShooter.Networking
         private Canvas[] localCanvases;
         private CharacterController controller;
         private Renderer remoteRenderer;
+        private RemoteWeaponPresentation remoteWeapon;
         private MaterialPropertyBlock remoteColor;
         private float shotFlashEndsAt;
         private bool inMatch;
@@ -36,6 +37,7 @@ namespace ArcadeShooter.Networking
             listener = GetComponentInChildren<AudioListener>(true);
             localCanvases = GetComponentsInChildren<Canvas>(true);
             if (remoteBody != null) remoteRenderer = remoteBody.GetComponentInChildren<Renderer>(true);
+            if (remoteBody != null) remoteWeapon = remoteBody.GetComponentInChildren<RemoteWeaponPresentation>(true);
             remoteColor = new MaterialPropertyBlock();
             SetControl(false);
             if (playerCamera != null) playerCamera.gameObject.SetActive(false);
@@ -110,10 +112,16 @@ namespace ArcadeShooter.Networking
 
         public void FlashRemoteShot()
         {
+            remoteWeapon?.Shot();
             if (remoteRenderer == null || !inMatch || IsOwner) return;
             remoteColor.SetColor("_BaseColor", new Color(1f, 0.75f, 0.12f));
             remoteRenderer.SetPropertyBlock(remoteColor);
             shotFlashEndsAt = Time.time + 0.1f;
+        }
+
+        public void SetRemoteReload(bool value)
+        {
+            if (!IsOwner) remoteWeapon?.SetReloading(value);
         }
 
         private void Update()
@@ -134,6 +142,8 @@ namespace ArcadeShooter.Networking
             if (movement != null) movement.enabled = enabled;
             if (look != null) look.enabled = enabled;
             if (rifle != null) rifle.enabled = enabled;
+            WeaponAim aim = GetComponent<WeaponAim>();
+            if (aim != null) aim.enabled = enabled;
         }
     }
 }
