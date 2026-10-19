@@ -11,8 +11,9 @@ Each milestone should leave a playable, testable slice. Complete its acceptance 
 | M4 — local danger zones and waves | Two reusable player-triggered zones in the existing graybox, warnings, NavMesh enemy waves, progress HUD, completion, and scene reset. | Room two spawns three enemies once; room three spawns two then four; only each zone's enemy deaths advance it. The player remains free to move and shoot. Unity compiles cleanly. |
 | M5 — online multiplayer and lobby | Add Sessions/Relay join codes, NGO ownership and scene sync, host-owned combat, health, AI, and shared danger zones in one reviewable multiplayer slice. | Two separate macOS clients can host/join, control independent players, damage shared enemies, clear shared waves, and leave cleanly. A compile/build and documented manual test cover the full slice. |
 | M6 — missions, extraction, and scoring | Merged by PR #7 on 2026-10-17: clear both danger zones, collect a sample, extract together, show success/failure and synchronized statistics, then replay or return to the lobby. | Two players can complete the full loop from lobby through combat, three objectives, extraction, and results. Both clients agree on the result; replay resets all match state; movement and camera remain player-controlled until results. |
-| M7 — weapon models and advanced animations | Planned. The owner's milestone brief sets the scope. | Set in the M7 brief. |
-| M8 — environment graphics, sound, and music | Planned. The owner's milestone brief sets the scope. | Set in the M8 brief. |
+| M7 — weapon visuals and animations | Merged by PR #10 on 2026-10-17. ADS, view motion, reload presentation, remote rifle, and optional rig adapter use project-made interim geometry. | See [WEAPON_VISUALS_TESTING.md](WEAPON_VISUALS_TESTING.md) for the remaining human feel and two-client checks. |
+| M8A — environment and lighting | Feature PR pending review. Give the existing map an approved research facility look with CC0 modular art, distinct rooms, safe passage and objective cues, and restrained URP lighting. | Preserve the complete three-room route, combat collision, mission objects, and network scene; compile and run EditMode tests; inspect renders and perform the [manual checklist](ENVIRONMENT_VISUALS_TESTING.md). |
+| M8B — audio and combat VFX | Future milestone after M8A review. | Set in a separate owner brief. |
 | M9 — progression and replayability | Planned. Includes the mission portal and team-based rewards, with difficulty that rises with the number of players ([D-020](DECISIONS.md)). The owner's milestone brief sets the rest of the scope. | Set in the M9 brief. |
 
 ## Milestone discipline
@@ -25,7 +26,7 @@ Each milestone should leave a playable, testable slice. Complete its acceptance 
 
 **First development milestone:** M1, a small explorable graybox with responsive first-person movement and no automatic travel.
 
-M1–M4 were merged into `develop` by PRs #2–#5, M5 by PR #6, and M6 by PR #7 on 2026-10-17. M7 is next. See [STATUS.md](STATUS.md).
+M1–M4 were merged into `develop` by PRs #2–#5, M5 by PR #6, M6 by PR #7, and M7 by PR #10 on 2026-10-17. M8A is in progress. See [STATUS.md](STATUS.md).
 
 ## Not yet scheduled
 

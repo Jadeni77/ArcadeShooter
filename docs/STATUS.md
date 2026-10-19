@@ -4,9 +4,17 @@ Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the proje
 
 ## Current state
 
-### Milestone 7: weapon visuals and animations (feature branch, pending review)
+### Milestone 8A: environment and lighting (feature branch, pending review)
 
-- `feature/weapon-visuals-animations` starts from `develop` at `d6b71f3` (M6 PR #7 and follow-up PRs #8–#9 merged). The owner's older checkout and its uncommitted changes remain untouched.
+- `feature/environment-visuals` starts from the M7 merge on `develop` (`506343a`). The owner's original checkout and its uncommitted work were left untouched.
+- The existing three-room mission map now uses the approved abandoned research facility theme. Selected Quaternius CC0 modular meshes and a Poly Haven CC0 metal plate texture add reusable floors, wall panels, ceiling panels, open passage details, and lab props. Room one uses cyan entry and extraction cues; room two uses amber containment cues; room three uses blue lab and sample cues. Two practical lights per room, local warning lamps, moderate ambient/fog settings, and a restrained URP Neutral tonemapping/Bloom Volume improve visibility. The player camera renders the Volume.
+- The new `Environment Visuals` root is separate from `Three Room Graybox` and contains no colliders. Original gameplay colliders, saved NavMesh data, player spawn, danger zones, target stands, sample, extraction, and mission/network components remain in place. The enemy body now has a warmer high-contrast material and its facing marker a small emissive accent; its AI, NavMeshAgent, hit collider, and `EnemyFeedback` behavior remain unchanged. A rigged enemy art asset is still unavailable, so advanced character animation is deferred.
+- Unity 6000.6.5f1 batch-imported the final scene and prefabs with no C# errors. All 38 EditMode tests passed (36 existing, 2 new); the new tests check complete room-to-room NavMesh paths, visual collision separation, gameplay object presence, post-processing, and unchanged enemy collision dimensions. Four 1280×720 Editor previews were visually inspected. They are static scene renders, not live Game-view or FPS evidence.
+- The two-client movement, combat, mission/extraction, and runtime performance checklist in [ENVIRONMENT_VISUALS_TESTING.md](ENVIRONMENT_VISUALS_TESTING.md) remains to be run in a cloud-linked, live Editor setup. No 60 FPS result is claimed. The feature PR targets `develop`; it must not be merged before review.
+
+### Milestone 7: weapon visuals and animations (merged by PR #10)
+
+- `feature/weapon-visuals-animations` started from `develop` at `d6b71f3` (M6 PR #7 and follow-up PRs #8–#9 merged). The owner's older checkout and its uncommitted changes remained untouched. PR #10 was merged into `develop` as `506343a` on 2026-10-17.
 - The assault rifle has a more detailed project-made primitive silhouette and a separate first-person presentation root. The remote avatar has a visible third-person rifle that recoils on shot broadcasts and lowers during its replicated reload state. Neither visual affects host-owned hit, ammunition, or reload decisions.
 - Holding right mouse button transitions the local weapon toward its sights, narrows camera FOV, and scales look sensitivity. The camera ray remains the shot ray. The first-person view also has configurable sway, walk bob, sprint offset, recoil recovery, and a timed magazine movement within the existing reload duration. The local rifle waits for authoritative reload completion in network play; the standalone timer remains available without a network spawn.
 - `WeaponAudio` plays the existing project-made gunfire, impact, and reload clips. Optional empty, magazine removal, and magazine insertion clip slots are ready but unassigned. `WeaponRigAnimator` can drive a future rigged weapon/hands Animator through Fire, Reloading, ReloadProgress, and Aim parameters.
@@ -100,4 +108,4 @@ The owner's checkouts also hold other uncommitted local edits (materials, scenes
 
 ## Next milestone
 
-M6 is merged. The owner's next milestones are M7 (weapon models and advanced animations), M8 (environment graphics, sound, and music), and M9 (progression and replayability). Each starts when the owner gives its brief, and only the active milestone gets built. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md) and are not to be built earlier. Follow-ups from M6 that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md).
+M7 is merged. M8A is the active environment and lighting PR; M8B audio and combat VFX must wait until M8A is reviewed. M9 progression and replayability is later. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md) and are not to be built earlier. Follow-ups from M6 that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md).

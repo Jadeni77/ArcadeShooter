@@ -1,0 +1,41 @@
+newmtl main
+Kd 0.667 0.667 0.667
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl dark_grey
+Kd 0.525 0.525 0.525
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl accent
+Kd 1.0 0.753 0.369
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl dark_accent
+Kd 0.514 0.384 0.192
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl black
+Kd 0.227 0.227 0.227
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl light
+Kd 0.0 0.0 0.0
+Ka 0 0 0
+Ks 0 0 0
+illum 2
+
+newmtl pipes
+Kd 0.145 0.145 0.145
+Ka 0 0 0
+Ks 0 0 0
+illum 2
