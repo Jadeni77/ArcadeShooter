@@ -1070,6 +1070,7 @@ GameObject:
   - component: {fileID: 112469619}
   - component: {fileID: 112469618}
   - component: {fileID: 112469617}
+  - component: {fileID: 112469620}
   m_Layer: 0
   m_Name: Room 2 Low Barrier
   m_TagString: Untagged
@@ -1170,6 +1171,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 112469615}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &112469620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 112469615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa55cdcf80a414173b4596f17f64fe02, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Combat.SurfaceFeedback
+  surface: 1
 --- !u!1001 &118967465
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -9035,6 +9049,88 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b765cc42e6dd6400baf804507a7c5c6a, type: 3}
   m_PrefabInstance: {fileID: 721698159}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &730537336
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 730537338}
+  - component: {fileID: 730537337}
+  - component: {fileID: 730537339}
+  m_Layer: 0
+  m_Name: Adaptive Music and Ambience
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &730537337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730537336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6bf48f0bbc73847029fc43fb957f615b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Audio.MusicManager
+  exploration: {fileID: 0}
+  dangerWarning: {fileID: 0}
+  combat: {fileID: 0}
+  boss: {fileID: 0}
+  facilityAmbience: {fileID: 0}
+  warningCue: {fileID: 0}
+  areaClearedCue: {fileID: 0}
+  extractionActiveCue: {fileID: 0}
+  countdownStartCue: {fileID: 0}
+  countdownTickCue: {fileID: 0}
+  successCue: {fileID: 0}
+  failureCue: {fileID: 0}
+  musicGroup: {fileID: 0}
+  ambienceGroup: {fileID: 0}
+  uiGroup: {fileID: 0}
+  musicLevel: 0.35
+  ambienceLevel: 0.24
+  cueLevel: 0.55
+  transitionSeconds: 1.6
+--- !u!4 &730537338
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730537336}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &730537339
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 730537336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e53cffca2e0d644e19b23d037b00aab8, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Audio.AudioMixSettings
+  mixer: {fileID: 0}
+  master: 1
+  music: 1
+  sfx: 1
+  ambience: 1
+  ui: 1
 --- !u!1 &733398730
 GameObject:
   m_ObjectHideFlags: 0
@@ -9430,6 +9526,7 @@ GameObject:
   - component: {fileID: 769591239}
   - component: {fileID: 769591238}
   - component: {fileID: 769591237}
+  - component: {fileID: 769591240}
   m_Layer: 0
   m_Name: Room 1 Crate
   m_TagString: Untagged
@@ -9530,6 +9627,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 769591235}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &769591240
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 769591235}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa55cdcf80a414173b4596f17f64fe02, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Combat.SurfaceFeedback
+  surface: 1
 --- !u!1 &780493845
 GameObject:
   m_ObjectHideFlags: 0
@@ -21157,8 +21267,8 @@ AudioSource:
   SpatializePostEffects: 0
   Priority: 128
   DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
+  MinDistance: 2
+  MaxDistance: 22
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -21193,7 +21303,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -23664,6 +23774,7 @@ GameObject:
   - component: {fileID: 1944878504}
   - component: {fileID: 1944878503}
   - component: {fileID: 1944878502}
+  - component: {fileID: 1944878505}
   m_Layer: 0
   m_Name: Room 3 Crate
   m_TagString: Untagged
@@ -23764,6 +23875,19 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1944878500}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &1944878505
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1944878500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: aa55cdcf80a414173b4596f17f64fe02, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Combat.SurfaceFeedback
+  surface: 1
 --- !u!1 &1948485712
 GameObject:
   m_ObjectHideFlags: 0
@@ -24178,8 +24302,8 @@ AudioSource:
   SpatializePostEffects: 0
   Priority: 128
   DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
+  MinDistance: 2
+  MaxDistance: 22
   Pan2D: 0
   rolloffMode: 0
   BypassEffects: 0
@@ -24214,7 +24338,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -27146,3 +27270,4 @@ SceneRoots:
   - {fileID: 608836167}
   - {fileID: 1955084641}
   - {fileID: 1314355010}
+  - {fileID: 730537338}

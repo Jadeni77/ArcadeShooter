@@ -2,6 +2,14 @@
 
 This document records the current implementation and preserves the earlier planning baseline below it.
 
+## M8B combat presentation and local music
+
+`AutomaticRifle` still supplies immediate local firing feedback, and `NetworkRifle` still decides accepted hits and damage on the host. An accepted raycast sends its point, normal, and compact surface category to each peer for a pooled `ImpactEffect`; only a host-confirmed enemy hit or kill changes the owner's hit marker. The surface category uses an optional `SurfaceFeedback` override, then the shared material name, with concrete as the default. `RemoteWeaponPresentation` shows a short barrel flash from the existing remote-shot event. Enemy health replication drives damage and one death presentation on all peers; host-confirmed attack/alert events provide cosmetic RPCs. These messages do not carry damage decisions.
+
+`WeaponAudio` retains the three project-authored clips and accepts optional gunfire variations and reload stage/empty clips. `EnemyAudio` follows replicated damage/death and server-broadcast alert/attack events with 3D attenuation and a local voice budget. `PlayerFoley` reads owner movement and replicated remote movement for footsteps, plus owner jump, landing, and health events. `DangerZone` warning and clear sounds now play from replicated zone transitions on every client. Empty clip slots stay silent.
+
+One scene-owned `MusicManager` selects exploration, warning, combat, and results from replicated `DangerZone` and `MissionController` state on each client; it crossfades two local 2D loop sources, plays one-shot area, extraction, countdown, and result cues, and exposes a boss-loop extension point. It never networks raw audio. Multiple zones keep combat active while any zone remains Active. A separate 2D ambience loop is available. The owner player camera remains the sole active gameplay `AudioListener`; remote weapon and enemy audio use world positions. Mixer groups and licensed clips are assigned when available. See [COMBAT_AUDIO_VFX_TESTING.md](COMBAT_AUDIO_VFX_TESTING.md) for the macOS and two-player checks.
+
 ## M8A environment presentation
 
 `FirstPersonTest` retains its gameplay-owned `Three Room Graybox` colliders and saved NavMeshSurface data. A separate `Environment Visuals` root holds imported CC0 modular meshes, project-authored trim, and non-shadowing practical lights. It has no colliders, so decoration cannot block player movement, hitscan, or AI routes. The original spawn points, danger-zone triggers, mission objectives, extraction, and scene network objects stay in place. The scene is still a freely explorable first-person map.

@@ -1,4 +1,5 @@
 using UnityEngine;
+using ArcadeShooter.Combat;
 
 namespace ArcadeShooter.Enemies
 {
@@ -11,6 +12,7 @@ namespace ArcadeShooter.Enemies
         [SerializeField] private Color attackColor = new Color(1f, 0.7f, 0.12f);
         [SerializeField] private Color deadColor = new Color(0.24f, 0.23f, 0.25f);
         [SerializeField, Min(0f)] private float flashDuration = 0.18f;
+        [SerializeField] private GameObject deathEffect;
 
         private EnemyHealth health;
         private MeleeEnemy enemy;
@@ -25,7 +27,7 @@ namespace ArcadeShooter.Enemies
             block = new MaterialPropertyBlock();
             health.Damaged += FlashDamage;
             health.Died += ShowDeath;
-            enemy.Attacked += FlashAttack;
+            health.AttackPresented += FlashAttack;
         }
 
         private void OnDestroy()
@@ -34,8 +36,8 @@ namespace ArcadeShooter.Enemies
             {
                 health.Damaged -= FlashDamage;
                 health.Died -= ShowDeath;
+                health.AttackPresented -= FlashAttack;
             }
-            if (enemy != null) enemy.Attacked -= FlashAttack;
         }
 
         private void Update()
@@ -60,10 +62,14 @@ namespace ArcadeShooter.Enemies
 
         private void ShowDeath()
         {
-            if (bodyRenderer == null) return;
-            block.SetColor("_BaseColor", deadColor);
-            bodyRenderer.SetPropertyBlock(block);
+            if (bodyRenderer != null)
+            {
+                block.SetColor("_BaseColor", deadColor);
+                bodyRenderer.SetPropertyBlock(block);
+            }
             flashUntil = 0f;
+            ImpactEffect.Spawn(deathEffect, transform.position + Vector3.up * 1.1f,
+                Vector3.up, ImpactSurface.Enemy);
         }
     }
 }

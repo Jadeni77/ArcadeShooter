@@ -1,16 +1,25 @@
 # Project status
 
-Last reviewed: 2026-10-17 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-18 (America/New_York). Inspect `git status` and the project before each task.
 
 ## Current state
 
-### Milestone 8A: environment and lighting (feature branch, pending review)
+### Milestone 8B: combat audio, VFX, and adaptive music (feature branch)
+
+- M8A was merged into `develop` by [PR #11](https://github.com/Jadeni77/ArcadeShooter/pull/11). `feature/combat-audio-vfx` starts from that merge (`d1cdb26`) in an isolated worktree; the older owner checkout and its uncommitted Unity changes were preserved.
+- Confirmed host raycasts now broadcast a compact impact point/normal/surface category for short pooled URP-compatible bursts on every peer. Metal cover, concrete, and enemies have different colored fragment shapes. The existing local muzzle flash remains tied to the fire cadence; the remote rifle gained a short barrel flash. The owner's hit marker distinguishes a host-confirmed kill. Existing damage, ammunition, cadence, and recoil code remain the authority.
+- Existing replicated enemy health now drives damage/death tint and one death burst on all peers. Host-confirmed alert and attack actions broadcast cosmetic events for optional spatial audio. The player prefab has optional footstep, jump, landing, and damage slots; cadence follows movement and sprint state. Danger-zone warning/clear audio now follows replicated transitions on each client.
+- A scene-owned `MusicManager` reads the replicated mission and zone states locally, crossfades exploration/warning/combat loops, retains combat while any zone is active, and supports area clear, extraction, countdown, success/failure, ambience, and a future boss loop. Its clips remain unassigned pending asset approval. `AudioMixSettings` exposes future bus-volume methods, but the project has no AudioMixer asset or groups yet, so bus routing is not complete.
+- The only currently audible clips are the existing project-made gunfire, impact, and basic reload WAVs. Enemy sounds, footsteps, zone cues, ambience, music, and most weapon handling sounds still need approved clips and Inspector assignment. Suggested free CC0 sources are recorded in [ASSET_LICENSES.md](ASSET_LICENSES.md); none have been downloaded or imported for 8B. Do not count these audio acceptance items as complete yet.
+- Unity 6000.6.5f1 imported and configured the scene/prefabs through Editor APIs without C# errors. All 38 EditMode tests passed on the final source and scene; the final Editor console ground truth reported zero errors and warnings. A focused direct-scene Play smoke test spawned concrete, metal, and enemy impact bursts, then observed zero active impacts after their lifetime and an Exploration music state with no clips. Direct scene Play has no player or AudioListener by design. The two-player route, audible quality, and frame-rate measurement remain unverified; follow [COMBAT_AUDIO_VFX_TESTING.md](COMBAT_AUDIO_VFX_TESTING.md).
+
+### Milestone 8A: environment and lighting (merged by PR #11)
 
 - `feature/environment-visuals` starts from the M7 merge on `develop` (`506343a`). The owner's original checkout and its uncommitted work were left untouched.
 - The existing three-room mission map now uses the approved abandoned research facility theme. Selected Quaternius CC0 modular meshes and a Poly Haven CC0 metal plate texture add reusable floors, wall panels, ceiling panels, open passage details, and lab props. Room one uses cyan entry and extraction cues; room two uses amber containment cues; room three uses blue lab and sample cues. Two practical lights per room, local warning lamps, moderate ambient/fog settings, and a restrained URP Neutral tonemapping/Bloom Volume improve visibility. The player camera renders the Volume.
 - The new `Environment Visuals` root is separate from `Three Room Graybox` and contains no colliders. Original gameplay colliders, saved NavMesh data, player spawn, danger zones, target stands, sample, extraction, and mission/network components remain in place. The enemy body now has a warmer high-contrast material and its facing marker a small emissive accent; its AI, NavMeshAgent, hit collider, and `EnemyFeedback` behavior remain unchanged. A rigged enemy art asset is still unavailable, so advanced character animation is deferred.
 - Unity 6000.6.5f1 batch-imported the final scene and prefabs with no C# errors. All 38 EditMode tests passed (36 existing, 2 new); the new tests check complete room-to-room NavMesh paths, visual collision separation, gameplay object presence, post-processing, and unchanged enemy collision dimensions. Four 1280×720 Editor previews were visually inspected. They are static scene renders, not live Game-view or FPS evidence.
-- The two-client movement, combat, mission/extraction, and runtime performance checklist in [ENVIRONMENT_VISUALS_TESTING.md](ENVIRONMENT_VISUALS_TESTING.md) remains to be run in a cloud-linked, live Editor setup. No 60 FPS result is claimed. The feature PR targets `develop`; it must not be merged before review.
+- The two-client movement, combat, mission/extraction, and runtime performance checklist in [ENVIRONMENT_VISUALS_TESTING.md](ENVIRONMENT_VISUALS_TESTING.md) remains to be run in a cloud-linked, live Editor setup. No 60 FPS result is claimed. PR #11 merged into `develop` on 2026-10-18.
 
 ### Milestone 7: weapon visuals and animations (merged by PR #10)
 

@@ -48,7 +48,11 @@ namespace ArcadeShooter.Networking
         public override void OnNetworkSpawn()
         {
             if (remoteBody != null) remoteBody.SetActive(false);
-            GetComponent<AudioSource>().spatialBlend = IsOwner ? 0f : 1f;
+            AudioSource weaponSource = GetComponent<AudioSource>();
+            weaponSource.spatialBlend = IsOwner ? 0f : 1f;
+            weaponSource.rolloffMode = AudioRolloffMode.Logarithmic;
+            weaponSource.minDistance = 2f;
+            weaponSource.maxDistance = 35f;
             GetComponent<PlayerHealth>().Died += OnDied;
         }
 

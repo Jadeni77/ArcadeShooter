@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -20,6 +21,12 @@ namespace ArcadeShooter.Player
         private InputAction jumpAction;
         private Vector3 horizontalVelocity;
         private float verticalVelocity;
+        private bool wasGrounded;
+        public float HorizontalSpeed => new Vector3(horizontalVelocity.x, 0f, horizontalVelocity.z).magnitude;
+        public bool Grounded { get; private set; }
+        public bool Sprinting { get; private set; }
+        public event Action Jumped;
+        public event Action Landed;
 
         private void Awake()
         {
@@ -35,7 +42,8 @@ namespace ArcadeShooter.Player
             // The controller can be disabled on remote player objects when ownership is added.
             Vector2 moveInput = Vector2.ClampMagnitude(moveAction.ReadValue<Vector2>(), 1f);
             Vector3 desiredDirection = transform.right * moveInput.x + transform.forward * moveInput.y;
-            float speed = sprintAction.IsPressed() ? sprintSpeed : walkSpeed;
+            Sprinting = sprintAction.IsPressed();
+            float speed = Sprinting ? sprintSpeed : walkSpeed;
             Vector3 desiredVelocity = desiredDirection * speed;
             bool grounded = IsGrounded();
             float currentAcceleration = grounded ? acceleration : airAcceleration;
@@ -49,7 +57,10 @@ namespace ArcadeShooter.Player
                     verticalVelocity = -2f;
 
                 if (jumpAction.WasPressedThisFrame())
+                {
                     verticalVelocity = Mathf.Sqrt(2f * gravity * jumpHeight);
+                    Jumped?.Invoke();
+                }
             }
 
             verticalVelocity -= gravity * Time.deltaTime;
@@ -57,6 +68,10 @@ namespace ArcadeShooter.Player
             CollisionFlags collisions = characterController.Move(motion * Time.deltaTime);
             if ((collisions & CollisionFlags.Above) != 0 && verticalVelocity > 0f)
                 verticalVelocity = 0f;
+            // Presentation uses actual controller contact, not the forgiving jump probe.
+            Grounded = characterController.isGrounded || (collisions & CollisionFlags.Below) != 0;
+            if (!wasGrounded && Grounded) Landed?.Invoke();
+            wasGrounded = Grounded;
         }
 
         private bool IsGrounded()

@@ -86,7 +86,11 @@ namespace ArcadeShooter.Enemies
                 {
                     nextAttackAt = Time.time + attackCooldown;
                     Vector3 hitPoint = target.transform.position + Vector3.up;
-                    if (target.ApplyDamage(attackDamage, hitPoint)) Attacked?.Invoke();
+                    if (target.ApplyDamage(attackDamage, hitPoint))
+                    {
+                        Attacked?.Invoke();
+                        health.BroadcastAttack();
+                    }
                 }
             }
             else
@@ -133,6 +137,7 @@ namespace ArcadeShooter.Enemies
         {
             if (CurrentState == state) return;
             CurrentState = state;
+            if (state == State.Chase) health.BroadcastAlert();
             if (!agent.isOnNavMesh) return;
             if (state == State.Attack || state == State.Idle)
             {

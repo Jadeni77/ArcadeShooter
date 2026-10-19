@@ -74,7 +74,12 @@ namespace ArcadeShooter.Encounters
             remainingEnemies.OnValueChanged -= OnIntegerChanged;
         }
 
-        private void OnStateChanged(int previous, int current) => Changed?.Invoke(this);
+        private void OnStateChanged(int previous, int current)
+        {
+            if (current == (int)ZoneState.Warning) Play(warningSound);
+            else if (current == (int)ZoneState.Cleared) Play(clearSound);
+            Changed?.Invoke(this);
+        }
         private void OnIntegerChanged(int previous, int current) => Changed?.Invoke(this);
 
         private static bool MissionAllowsProgress => MissionController.Instance == null || MissionController.Instance.IsRunning;
@@ -109,7 +114,6 @@ namespace ArcadeShooter.Encounters
         private void Activate()
         {
             state.Value = (int)ZoneState.Warning;
-            Play(warningSound);
             pendingWave = StartCoroutine(StartAfterDelay(warningDuration, 0));
         }
 
@@ -163,7 +167,6 @@ namespace ArcadeShooter.Encounters
             if (CurrentWave >= spawner.WaveCount)
             {
                 state.Value = (int)ZoneState.Cleared;
-                Play(clearSound);
                 return;
             }
             pendingWave = StartCoroutine(StartAfterDelay(spawner.DelayBeforeWave(CurrentWave), CurrentWave));
