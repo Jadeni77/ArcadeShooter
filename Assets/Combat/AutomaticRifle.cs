@@ -136,7 +136,7 @@ namespace ArcadeShooter.Combat
             else if (Physics.Raycast(ray, out RaycastHit hit, range, hitMask, QueryTriggerInteraction.Ignore))
             {
                 PlayConfirmedImpact(hit.point, hit.normal, ImpactEffect.Classify(hit.collider));
-                weaponAudio.PlayImpact();
+                if (impactPrefab == null) weaponAudio.PlayImpact();
                 IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
                 if (damageable != null && damageable.ApplyDamage(damage, hit.point))
                     hud?.ConfirmHit(damageable is EnemyHealth enemy && enemy.IsDead);

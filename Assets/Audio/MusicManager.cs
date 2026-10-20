@@ -78,7 +78,13 @@ namespace ArcadeShooter.Audio
         private void Start()
         {
             zones = FindObjectsByType<DangerZone>();
-            foreach (DangerZone zone in zones) previousZones.Add(zone, zone.State);
+            bool warningAtStart = false;
+            foreach (DangerZone zone in zones)
+            {
+                previousZones.Add(zone, zone.State);
+                warningAtStart |= zone.State == DangerZone.ZoneState.Warning;
+            }
+            if (warningAtStart) PlayCue(warningCue);
             MissionController mission = MissionController.Instance;
             previousMissionState = mission != null ? mission.State : MissionState.Waiting;
             state = ResolveState(mission);
@@ -92,17 +98,23 @@ namespace ArcadeShooter.Audio
             if (next != state)
             {
                 state = next;
-                if (state == MusicState.DangerWarning) PlayCue(warningCue);
                 SelectLoop(LoopFor(state));
             }
+            bool warningStarted = false;
+            bool areaCleared = false;
             foreach (DangerZone zone in zones)
             {
                 if (zone == null) continue;
                 DangerZone.ZoneState current = zone.State;
-                if (previousZones[zone] != current && current == DangerZone.ZoneState.Cleared)
-                    PlayCue(areaClearedCue);
+                if (previousZones[zone] != current)
+                {
+                    warningStarted |= current == DangerZone.ZoneState.Warning;
+                    areaCleared |= current == DangerZone.ZoneState.Cleared;
+                }
                 previousZones[zone] = current;
             }
+            if (warningStarted) PlayCue(warningCue);
+            if (areaCleared) PlayCue(areaClearedCue);
             if (mission != null && mission.State != previousMissionState)
             {
                 if (mission.State == MissionState.ExtractionActive) PlayCue(extractionActiveCue);

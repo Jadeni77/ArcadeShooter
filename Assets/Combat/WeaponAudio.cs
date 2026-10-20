@@ -12,6 +12,7 @@ namespace ArcadeShooter.Combat
         [SerializeField] private AudioClip[] gunfireVariants;
         [SerializeField] private AudioClip impact;
         [SerializeField] private AudioClip reloadHandling;
+        [SerializeField] private AudioClip reloadComplete;
         [SerializeField] private AudioClip magazineOut;
         [SerializeField] private AudioClip magazineIn;
         [SerializeField] private AudioClip empty;
@@ -24,6 +25,7 @@ namespace ArcadeShooter.Combat
         private AudioSource source;
         private bool outPlayed;
         private bool inPlayed;
+        private int magazineBeforeReload;
 
         private void Awake()
         {
@@ -34,12 +36,16 @@ namespace ArcadeShooter.Combat
 
         private void OnEnable()
         {
-            if (rifle != null) rifle.ReloadStarted += OnReloadStarted;
+            if (rifle == null) return;
+            rifle.ReloadStarted += OnReloadStarted;
+            rifle.ReloadFinished += OnReloadFinished;
         }
 
         private void OnDisable()
         {
-            if (rifle != null) rifle.ReloadStarted -= OnReloadStarted;
+            if (rifle == null) return;
+            rifle.ReloadStarted -= OnReloadStarted;
+            rifle.ReloadFinished -= OnReloadFinished;
         }
 
         private void Update()
@@ -61,10 +67,17 @@ namespace ArcadeShooter.Combat
         private void OnReloadStarted()
         {
             outPlayed = inPlayed = false;
+            magazineBeforeReload = rifle.Magazine;
             Play(reloadHandling, handlingLevel);
         }
 
+        private void OnReloadFinished()
+        {
+            if (rifle.Magazine > magazineBeforeReload) Play(reloadComplete, handlingLevel);
+        }
+
         public void PlayRemoteReload() => Play(reloadHandling, handlingLevel);
+        public void PlayRemoteReloadComplete() => Play(reloadComplete, handlingLevel);
         public void PlayGunfire()
         {
             AudioClip clip = gunfireVariants != null && gunfireVariants.Length > 0

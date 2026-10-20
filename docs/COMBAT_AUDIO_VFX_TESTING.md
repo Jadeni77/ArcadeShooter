@@ -5,9 +5,9 @@ Open `Assets/Scenes/MainMenu.unity` and host a mission from the lobby. Direct Pl
 ## Phase A — combat visuals
 
 1. Fire from hip and while aiming down sights. Verify that each accepted local shot shows the existing brief barrel flash and recoil. Check the flash stays at the barrel and does not cover the sight picture.
-2. Shoot gray walls/floors, metal surfaces, and enemies. Verify the small impact burst follows the surface normal, with gray dust, amber sparks, and red enemy particles respectively. Verify impacts disappear quickly, including during sustained fire.
+2. Shoot gray walls/floors, metal surfaces, and enemies. Verify the bright impact burst follows the surface normal, with gray dust, amber sparks, and red enemy particles respectively. Verify impacts disappear in under a second, including during sustained fire.
 3. Hit an enemy without killing it, then land a killing shot. The normal hit marker should use its original color; a confirmed kill should briefly use amber. Fire into cover and verify no enemy hit marker appears. Check that client markers follow host-confirmed hits, including under latency.
-4. Damage and kill an enemy. Verify its damage tint and death tint/burst occur once on host and joiner. Check that damage, AI, death, and score remain unchanged.
+4. Damage and kill an enemy. Verify its damage tint and fragment-only death burst occur once on host and joiner without covering the sight picture. Check that damage, AI, death, and score remain unchanged.
 
 ## Phase B — combat and player sound
 
@@ -37,3 +37,16 @@ Only gunfire, impact, and basic reload clips existed before 8B. Any unassigned c
 - All 38 existing EditMode tests passed after the final scene and prefab setup.
 - Direct Play of `FirstPersonTest` confirmed the music controller entered Exploration without an assigned clip and that three manually spawned impact types returned to their pool after 0.25 seconds. This scene path has no spawned player or active gameplay AudioListener, so it does not verify the multiplayer or audible checks above.
 - No two-player 8B session, listening pass, or frame-time measurement has been recorded yet.
+
+## Follow-up visual check on 2026-10-19
+
+- The project-made muzzle flash and impact materials now use URP Unlit so they remain bright under facility lighting. The impact prefab is larger and lasts 0.38 seconds; enemy death uses eight outward fragments over roughly 0.68 seconds instead of a solid red disc.
+- A frozen Game-view preview visibly distinguished concrete, metal, and enemy/death bursts. Unity recompiled the revised scripts without errors, and all 38 EditMode tests passed. The preview does not prove shot-triggered effects on both peers; a fresh two-player firing pass is still needed.
+- The local Unity Services settings currently show the M8B checkout as unlinked, so the fresh online pass cannot begin until the owner approves linking this checkout to the intended Dashboard project. The earlier session did reach the map with two players before the link stopped resolving in the Editor.
+
+## Acceptance review and functional smoke checks on 2026-10-19
+
+- See [COMBAT_AUDIO_VFX_REVIEW.md](COMBAT_AUDIO_VFX_REVIEW.md) for the criterion-by-criterion status and merge recommendation. The real scene/prefabs still have empty enemy, foley, zone cue, music, and ambience fields; code hooks are not audible completion.
+- The existing `Impact.wav` now plays from the pooled 3D impact prefab, including the shared host-confirmed impact path. A direct-scene Play Mode spawn reported an active source with spatial blend 1; a reused enemy death burst did not play the bullet-impact sound. An actual shot heard by both peers is still unverified.
+- Using only temporary in-memory test clips and local zone-state changes, the manager entered Warning, Combat, Warning, Combat, and Exploration in the expected order. A second zone's warning cue played during Combat, and Combat stayed active until the last active zone cleared. This tests state/source logic without claiming audible gameplay music or network delivery.
+- Unity 6000.6.5f1 compiled, all 38 EditMode tests passed, and the Editor console reported zero errors/warnings after the changes. A real two-player firing/listening run and Profiler measurement are still pending.

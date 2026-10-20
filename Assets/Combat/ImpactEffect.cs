@@ -10,6 +10,8 @@ namespace ArcadeShooter.Combat
     public sealed class ImpactEffect : MonoBehaviour
     {
         [SerializeField, Min(0.01f)] private float lifetime = 0.25f;
+        [SerializeField] private AudioClip impactSound;
+        [SerializeField, Range(0f, 1f)] private float impactSoundLevel = 0.45f;
         private static readonly Dictionary<GameObject, Stack<ImpactEffect>> Pools = new Dictionary<GameObject, Stack<ImpactEffect>>();
         private const int PoolLimit = 48;
         private static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
@@ -19,13 +21,16 @@ namespace ArcadeShooter.Combat
 
         private GameObject sourcePrefab;
         private Renderer effectRenderer;
+        private AudioSource audioSource;
         private MaterialPropertyBlock colorBlock;
         private Vector3 baseScale;
         private float currentSize;
+        private float currentLifetime;
         private float expiresAt;
-        private readonly Transform[] fragments = new Transform[4];
-        private readonly Vector3[] directions = new Vector3[4];
+        private readonly Transform[] fragments = new Transform[8];
+        private readonly Vector3[] directions = new Vector3[8];
         private ImpactSurface currentSurface;
+        private bool deathBurst;
 
         public static ImpactSurface Classify(Collider collider)
         {
@@ -39,7 +44,8 @@ namespace ArcadeShooter.Combat
                 ? ImpactSurface.Metal : ImpactSurface.Concrete;
         }
 
-        public static void Spawn(GameObject prefab, Vector3 position, Vector3 normal, ImpactSurface surface)
+        public static void Spawn(GameObject prefab, Vector3 position, Vector3 normal, ImpactSurface surface,
+            float sizeMultiplier = 1f, float durationMultiplier = 1f, bool playSound = true)
         {
             if (prefab == null) return;
             if (!Pools.TryGetValue(prefab, out Stack<ImpactEffect> pool))
@@ -59,12 +65,13 @@ namespace ArcadeShooter.Combat
             effect.transform.SetPositionAndRotation(position + normal * 0.015f,
                 Quaternion.FromToRotation(Vector3.forward, normal));
             effect.gameObject.SetActive(true);
-            effect.Show(surface);
+            effect.Show(surface, sizeMultiplier, durationMultiplier, playSound);
         }
 
         private void Awake()
         {
             effectRenderer = GetComponentInChildren<Renderer>();
+            audioSource = GetComponent<AudioSource>();
             colorBlock = new MaterialPropertyBlock();
             baseScale = transform.localScale;
             MeshFilter sourceMesh = GetComponent<MeshFilter>();
@@ -83,22 +90,37 @@ namespace ArcadeShooter.Combat
             }
         }
 
-        private void Show(ImpactSurface surface)
+        private void Show(ImpactSurface surface, float sizeMultiplier, float durationMultiplier, bool playSound)
         {
-            expiresAt = Time.time + lifetime;
+            if (audioSource != null)
+            {
+                audioSource.Stop();
+                if (playSound && impactSound != null)
+                    audioSource.PlayOneShot(impactSound, impactSoundLevel);
+            }
+            currentLifetime = lifetime * Mathf.Max(0.1f, durationMultiplier);
+            expiresAt = Time.time + currentLifetime;
             currentSurface = surface;
-            currentSize = surface == ImpactSurface.Enemy ? 1.5f : surface == ImpactSurface.Metal ? 0.7f : 1f;
+            deathBurst = surface == ImpactSurface.Enemy && sizeMultiplier >= 2f;
+            currentSize = (surface == ImpactSurface.Enemy ? 1.5f :
+                surface == ImpactSurface.Metal ? 0.7f : 1f) * Mathf.Max(0.1f, sizeMultiplier);
             transform.localScale = baseScale * currentSize;
             if (effectRenderer == null) return;
+            // Death uses a larger burst of fragments without a solid disc covering the target.
+            effectRenderer.enabled = !deathBurst;
             colorBlock.SetColor(BaseColor, surface == ImpactSurface.Enemy ? EnemyColor :
                 surface == ImpactSurface.Metal ? MetalColor : ConcreteColor);
             effectRenderer.SetPropertyBlock(colorBlock);
             for (int i = 0; i < fragments.Length; i++)
             {
                 if (fragments[i] == null) continue;
-                float angle = (i + Random.Range(-0.12f, 0.12f)) * Mathf.PI * 0.5f;
+                bool visible = deathBurst || i < 4;
+                fragments[i].gameObject.SetActive(visible);
+                if (!visible) continue;
+                float angle = (i + Random.Range(-0.12f, 0.12f)) *
+                    Mathf.PI * 2f / (deathBurst ? fragments.Length : 4);
                 directions[i] = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle),
-                    surface == ImpactSurface.Metal ? 0.45f : 0.2f).normalized;
+                    surface == ImpactSurface.Metal ? 0.45f : deathBurst ? 0.35f : 0.2f).normalized;
                 fragments[i].GetComponent<Renderer>().SetPropertyBlock(colorBlock);
             }
             UpdateFragments(0f);
@@ -108,11 +130,12 @@ namespace ArcadeShooter.Combat
         {
             for (int i = 0; i < fragments.Length; i++)
             {
-                if (fragments[i] == null) continue;
+                if (fragments[i] == null || !fragments[i].gameObject.activeSelf) continue;
                 fragments[i].localPosition = directions[i] * (progress * 1.5f);
                 fragments[i].localRotation = Quaternion.LookRotation(directions[i]);
                 Vector3 shape = currentSurface == ImpactSurface.Metal
-                    ? new Vector3(0.12f, 0.12f, 0.55f) : Vector3.one * 0.35f;
+                    ? new Vector3(0.12f, 0.12f, 0.55f) :
+                    Vector3.one * (deathBurst ? 0.26f : 0.35f);
                 fragments[i].localScale = shape * Mathf.Max(0.01f, 1f - progress);
             }
         }
@@ -120,7 +143,7 @@ namespace ArcadeShooter.Combat
         private void Update()
         {
             if (expiresAt <= 0f) return;
-            float remaining = (expiresAt - Time.time) / lifetime;
+            float remaining = (expiresAt - Time.time) / currentLifetime;
             if (remaining <= 0f)
             {
                 expiresAt = 0f;

@@ -69,7 +69,7 @@ namespace ArcadeShooter.Enemies
             }
             flashUntil = 0f;
             ImpactEffect.Spawn(deathEffect, transform.position + Vector3.up * 1.1f,
-                Vector3.up, ImpactSurface.Enemy);
+                Vector3.up, ImpactSurface.Enemy, 3f, 1.8f, false);
         }
     }
 }

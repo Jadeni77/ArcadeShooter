@@ -19,6 +19,7 @@ namespace ArcadeShooter.Networking
         private NetworkPlayer player;
         private readonly ShotCadence cadence = new ShotCadence();
         private float reloadEndsAt;
+        private int remoteMagazineBeforeReload;
         private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
 
         private void Awake()
@@ -160,7 +161,13 @@ namespace ArcadeShooter.Networking
             if (!IsOwner)
             {
                 player.SetRemoteReload(newValue);
-                if (newValue) GetComponent<WeaponAudio>()?.PlayRemoteReload();
+                if (newValue)
+                {
+                    remoteMagazineBeforeReload = magazine.Value;
+                    GetComponent<WeaponAudio>()?.PlayRemoteReload();
+                }
+                else if (oldValue && CombatAllowed && magazine.Value > remoteMagazineBeforeReload)
+                    GetComponent<WeaponAudio>()?.PlayRemoteReloadComplete();
             }
         }
         private void SyncOwner()
