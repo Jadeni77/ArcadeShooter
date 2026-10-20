@@ -9079,21 +9079,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bf48f0bbc73847029fc43fb957f615b, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Audio.MusicManager
-  exploration: {fileID: 0}
-  dangerWarning: {fileID: 0}
-  combat: {fileID: 0}
+  exploration: {fileID: 8300000, guid: 3c9a3edb5a6a247948ba02855b4cf86e, type: 3}
+  dangerWarning: {fileID: 8300000, guid: cae81ee6e01f64621a31f8c07a411394, type: 3}
+  combat: {fileID: 8300000, guid: 5229ebb5f4e044da0b6cac0d54b5025a, type: 3}
   boss: {fileID: 0}
-  facilityAmbience: {fileID: 0}
-  warningCue: {fileID: 0}
-  areaClearedCue: {fileID: 0}
-  extractionActiveCue: {fileID: 0}
-  countdownStartCue: {fileID: 0}
-  countdownTickCue: {fileID: 0}
-  successCue: {fileID: 0}
-  failureCue: {fileID: 0}
-  musicGroup: {fileID: 0}
-  ambienceGroup: {fileID: 0}
-  uiGroup: {fileID: 0}
+  facilityAmbience: {fileID: 8300000, guid: b4c258b097e9f403a97c050bf0022ed7, type: 3}
+  warningCue: {fileID: 8300000, guid: d2fef9e55f5b14e1e8fcb56ba4d99a45, type: 3}
+  areaClearedCue: {fileID: 8300000, guid: 7f15f666aa1f14833a2644c3816886b3, type: 3}
+  extractionActiveCue: {fileID: 8300000, guid: 71e4cf2ca63774c7e811dbf8a945c2a8, type: 3}
+  countdownStartCue: {fileID: 8300000, guid: ad4b838fe14e847c5bfbe1244ab2e3b5, type: 3}
+  countdownTickCue: {fileID: 8300000, guid: 5a42a2209df7749f98b0f706311dd77e, type: 3}
+  successCue: {fileID: 8300000, guid: 999669f93ff40438c9e20e6986941b56, type: 3}
+  failureCue: {fileID: 8300000, guid: e8613229961d946059349e55664026c5, type: 3}
+  musicGroup: {fileID: -4761274611363401735, guid: 792530a32820344698c5d9981a712252, type: 2}
+  ambienceGroup: {fileID: 6766523467121810907, guid: 792530a32820344698c5d9981a712252, type: 2}
+  uiGroup: {fileID: -3526833132700765242, guid: 792530a32820344698c5d9981a712252, type: 2}
   musicLevel: 0.35
   ambienceLevel: 0.24
   cueLevel: 0.55
@@ -9125,7 +9125,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e53cffca2e0d644e19b23d037b00aab8, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Audio.AudioMixSettings
-  mixer: {fileID: 0}
+  mixer: {fileID: 24100000, guid: 792530a32820344698c5d9981a712252, type: 2}
   master: 1
   music: 1
   sfx: 1
@@ -21255,7 +21255,7 @@ AudioSource:
   m_GameObject: {fileID: 1764761669}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -24290,7 +24290,7 @@ AudioSource:
   m_GameObject: {fileID: 1953524549}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0

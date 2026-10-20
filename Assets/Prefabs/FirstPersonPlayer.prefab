@@ -2935,7 +2935,7 @@ AudioSource:
   m_GameObject: {fileID: 8131071438442582926}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0
@@ -3182,10 +3182,11 @@ MonoBehaviour:
   gunfireVariants: []
   impact: {fileID: 8300000, guid: 351f863a36b8e488f878dc5016c24e99, type: 3}
   reloadHandling: {fileID: 8300000, guid: b6bc68c596ebe4df592d415b1d4b1ac8, type: 3}
-  magazineOut: {fileID: 0}
-  magazineIn: {fileID: 0}
-  empty: {fileID: 0}
-  sfxGroup: {fileID: 0}
+  reloadComplete: {fileID: 8300000, guid: dd02c084728724dd1921c33877cad36d, type: 3}
+  magazineOut: {fileID: 8300000, guid: 1aa265fa4f09143229674907782fa6af, type: 3}
+  magazineIn: {fileID: 8300000, guid: c73d04b402ecc4ae5a80fab6cf533ef2, type: 3}
+  empty: {fileID: 8300000, guid: 60c219174be4143e5bdddd88773eaa54, type: 3}
+  sfxGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   gunfireLevel: 0.75
   handlingLevel: 0.65
   impactLevel: 0.45
@@ -3218,15 +3219,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fa19bcd1649c4232a2c90734a7ca457, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Player.PlayerFoley
-  footsteps: []
-  jump: {fileID: 0}
-  land: {fileID: 0}
-  damaged: {fileID: 0}
+  footsteps:
+  - {fileID: 8300000, guid: aba75bdadbd5f49e997fc8978685398d, type: 3}
+  - {fileID: 8300000, guid: d37b882b968914577bec6b266afbb039, type: 3}
+  - {fileID: 8300000, guid: 6434b99e0339d41d18b6c4e480a9b64c, type: 3}
+  jump: {fileID: 8300000, guid: b43b03a69a29f40b29bf25a265092733, type: 3}
+  land: {fileID: 8300000, guid: 6f90396cf648a4b03bc421748e669e94, type: 3}
+  damaged: {fileID: 8300000, guid: a20706429067b47ccbb22b7d712327c6, type: 3}
   level: 0.5
   walkStepSeconds: 0.43
   sprintStepSeconds: 0.29
   foleySource: {fileID: 1934410908845314887}
-  sfxGroup: {fileID: 0}
+  sfxGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
 --- !u!82 &1934410908845314887
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3236,7 +3240,7 @@ AudioSource:
   m_GameObject: {fileID: 8131071438442582926}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 0

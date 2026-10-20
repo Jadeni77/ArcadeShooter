@@ -1,39 +1,36 @@
 # Milestone 8B acceptance review
 
-Reviewed 2026-10-19 against the original M8B brief. `feature/combat-audio-vfx` is open as draft PR #12. **Recommendation: do not merge yet.** The visuals use acceptable project-made placeholders, but required gameplay audio is still silent and the two-player combat effects pass is outstanding.
+Reviewed 2026-10-20 against the original brief. `feature/combat-audio-vfx` remains draft PR #12. **Recommendation: keep it open for the two-player combat and listening pass.** The functional audio slots now have project-made clips and the mixer is wired, but asset assignment and EditMode tests alone cannot prove playback, synchronization, or absence of duplicate effects in a match.
 
-## Verified functional pieces (narrow scope)
+## Implemented and tested
 
-No original M8B audio acceptance item has been fully verified in two-player gameplay. The checks below establish specific working pieces and define their limits.
+- The user observed the red, host-confirmed bullet-hit effect in gameplay. An Editor preview distinguished concrete, metal, and enemy impacts; pooled objects returned after their lifetime. The impact prefab played the existing `Impact.wav` through a 3D AudioSource in direct-scene Play Mode, and reusing that prefab for an enemy death burst did not replay the bullet-impact sound. This is local evidence, not a two-player firing pass.
+- The scene's music state logic crossed Exploration → Warning → Combat → Warning → Combat → Exploration with two independently changing zone states in a direct-scene Play Mode smoke test using temporary clips. A second warning cue played while Combat remained active. This verifies the transition code, not the newly assigned loop playback in an online match.
+- Unity 6000.6.5f1 compiled the latest source and all **40 EditMode tests passed** on 2026-10-20. New tests check clip and mixer references, all five exposed volume parameters, and `AudioMixSettings.SetLevel` changing Music volume to about −12.04 dB at 25%. These tests do not listen to the output.
+- With the owner-approved local Dashboard linkage, the MainMenu created a Relay lobby and displayed a join code with 1/4 players on 2026-10-20. This confirms service startup and hosting, not two-player M8B acceptance. The local Dashboard IDs remain uncommitted.
 
-- The pooled impact prefab now plays the existing project-made `Impact.wav` from a 3D AudioSource at the confirmed hit point. A direct-scene Play Mode spawn reported `isPlaying=True` and `spatialBlend=1`; reuse for an enemy death burst reported `isPlaying=False`, avoiding a second bullet-impact sound. This verifies the prefab playback path, not an actual network shot heard by two players.
-- A direct-scene Play Mode test with temporary in-memory clips exercised Exploration → Warning → Combat → Warning → Combat → Exploration across two zone states. A second zone's warning cue reported playing while Combat remained active. These clips were not saved or imported; the real scene's music fields remain empty.
-- Unity 6000.6.5f1 compiled the current code, all 38 EditMode tests passed, and the Editor console reported zero compilation errors and warnings after this review. The user observed the red bullet-hit effect in gameplay. The separate concrete/metal/enemy preview and pooled cleanup were verified previously; an actual two-client firing pass remains outstanding.
+## Wired to project-made placeholder assets
 
-## Working with project-made placeholders
-
-| Feature | Evidence and limit |
+| Feature | Current evidence and limit |
 | --- | --- |
-| Local muzzle flash, recoil, hit marker, and surface impacts | Existing firing presentation and the M8B geometry/materials are wired. The user saw the red bullet-hit effect; a direct Editor preview distinguished concrete, metal, and enemy colors. Hip/ADS clipping, confirmed-kill marker, and remote visuals still need the checklist pass. |
-| Enemy damage tint and death burst | Replicated-health handlers and the project-made fragment effect are wired; the death burst was previewed. Actual damage/death on both peers and one-time presentation are not yet observed in an M8B two-player run. |
-| Gunfire, basic reload, and impact sound assets | Existing locally synthesized `Gunfire.wav`, `Reload.wav`, and `Impact.wav` are assigned. Local/remote gunfire and reload are event-wired; impact playback was smoke-tested as above. Shot-to-sound timing, distance falloff, and duplicate prevention need listening on both peers. |
-| Timed weapon motion and remote rifle | Existing M7 project-made presentation remains; M8B adds remote muzzle timing. Rigged hands and articulated enemy animations do not exist. |
+| Muzzle flash, recoil, hit markers, surface impacts, enemy tint/death burst | Project-made URP visuals and host-confirmed events are wired. Hip/ADS clipping, kill-marker readability, and one-time behavior on both peers still need the manual pass. |
+| Gunfire, basic reload, impact | Existing locally synthesized WAVs are assigned. Impact playback was smoke-tested; local/remote gunfire and reload timing still need a two-player listening pass. |
+| Weapon handling, player foley, enemy behavior | New locally synthesized clips are assigned on the player and enemy prefabs for empty click, magazine out/in, reload completion, three footsteps, jump, landing, player damage, and idle/alert/attack/damage/death. The EditMode test verifies references; cadence, 3D attenuation, event timing, and actual audible playback remain unverified in gameplay. |
+| Zone, mission, music, ambience | New locally synthesized warning/clear, extraction/countdown, success/failure cues and exploration/warning/combat/ambience loops are assigned in `FirstPersonTest`. `MusicManager` uses local 2D sources and reads replicated states; the new files' playback and crossfades have not been heard in a live match. |
+| Mixer | `CombatAudio.mixer` has Master, Music, SFX, Ambience, and UI buses with exposed volumes. Sources and controller references are assigned. The volume setter passed its EditMode behavior test; a listening test of each bus remains. |
 
-## Code support that is silent or not yet proven in gameplay
+The 26 new WAVs were synthesized in this repository without downloaded samples or third-party assets. They are deliberately simple sounds; acceptance still depends on real playback and gameplay timing.
 
-| Feature | Current state |
-| --- | --- |
-| Enemy idle, alert, attack, damage, and death | `EnemyAudio` follows replicated health and host cosmetic events, with 3D rolloff and a wave budget. Every clip array on `MeleeEnemy.prefab` is empty, so none plays. Death audio duration relative to enemy despawn needs checking after a clip is assigned. |
-| Walking/sprinting steps, jump, landing, and player damage | `PlayerFoley` follows owner/remote movement and health, but all its clip slots are empty. Cadence and distance behavior have not been heard in gameplay. |
-| Empty trigger, magazine out/in, and reload completion | `WeaponAudio` has timing hooks, including a completion hook that only fires after a refill, but these clips are unassigned. The existing basic reload-start WAV does not cover the missing events. |
-| Zone warning/clear, extraction, countdown, success/failure | `DangerZone` and `MusicManager` detect the corresponding replicated states, but all cue references are empty. A prior cue transition bug was fixed; the temporary-clip test above does not establish real audible integration. |
-| Exploration/warning/combat music and ambience | `MusicManager` selects and crossfades local 2D sources, prioritizing active combat across zones. Every real music/ambience clip field is empty; gameplay is silent. Boss music is a reserved extension point only. |
-| Mixer and volume control | No AudioMixer asset or Master/Music/SFX/Ambience/UI groups exist. `AudioMixSettings.SetLevel` stores values but returns before changing output while its mixer reference is null. Required routing and user volume control are incomplete. |
-| Multiplayer duplication and regression | `RemoteShotRpc` excludes the owner; `ImpactRpc` broadcasts one host-confirmed impact; enemy events follow authority. Only lobby-to-map with two players was previously observed. Shooting, enemy effects, listening, and mission results were not retested on two peers after M8B. |
+## Implemented in code but not functioning or proven in gameplay
 
-## Missing assets and required checks
+- Boss music is only an extension point: no boss encounter or clip exists, as intended for a future milestone.
+- `WeaponAudio` provides local magazine stage sounds and remote reload-start/completion hooks. Remote magazine out/in presentation is not sent separately; the original acceptance asks for relevant remote combat effects, so confirm whether the basic remote reload sound is sufficient during the two-player pass.
+- `EnemyAudio`, `PlayerFoley`, and `MusicManager` have clip references now, but a live host/joiner listening pass has not confirmed that every event is audible, correctly spatialized, free of duplicates, and cut off at the right time. Treat those items as **unverified**, not complete.
+- The required two-player firing, enemy, zone, extraction, and results route was not repeated after assigning the real placeholder clips. The 2026-10-19 two-player run reached the map before these assignments. An Editor sign-in button incorrectly requested installation of Unity Hub even though Hub 3.22.2 was installed; anonymous Authentication still allowed the live 1/4 Relay host test. The second-client run remains open.
+- No wave Profiler sample or measured 60 FPS result has been recorded.
 
-- No third-party M8B assets were downloaded or imported. Required audible placeholders or approved clips are missing for enemy behavior, player foley, weapon handling, zone/extraction/results cues, ambience, and exploration/warning/combat loops. New assets require owner approval and a license record in `ASSET_LICENSES.md`.
-- The AudioMixer asset/groups, assigned routing, and a real volume adjustment test are missing. These are functional M8B requirements, not future cosmetic polish.
-- A host and joiner must see and hear the same relevant host-confirmed combat events; check no duplicate effects, local/remote spatialization, enemy death audio tail, and zone/music transitions. Unity Services currently reports this checkout unlinked, so online validation requires the owner-approved project link. No 60 FPS claim is made without a measured Profiler run.
-- Rigged first-person arms, detailed enemy animations, richer VFX particles/textures, and professional sound/music replacements are future polish. See `ROADMAP.md`; they do not turn silent M8B acceptance items into completed features.
+## Missing assets and future polish
+
+No rigged first-person hands, articulated enemy attack/damage/death animations, surface-specific particle textures, professionally designed weapon/enemy/footstep sounds, or composed music are present. Those are **replacement and polish** tasks in [ROADMAP.md](ROADMAP.md), not a reason to call silent or broken M8B playback complete. No external asset was downloaded or purchased for this review; [ASSET_LICENSES.md](ASSET_LICENSES.md) records the project-made placeholders and optional candidates awaiting approval.
+
+Before merge, complete the [two-player checklist](COMBAT_AUDIO_VFX_TESTING.md) and record each peer's audible/visible observations, fix any broken playback or transition it reveals, and check the Console on both clients. Performance can be reported separately with an actual Profiler measurement; no 60 FPS claim is made here.

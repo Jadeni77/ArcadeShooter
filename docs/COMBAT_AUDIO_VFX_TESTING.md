@@ -29,7 +29,7 @@ Run the entire route with a host and joiner on macOS. Record each player's obser
 
 ## Asset-dependent checks
 
-Only gunfire, impact, and basic reload clips existed before 8B. Any unassigned clip field is intentionally silent. Record the exact imported clip assignments and repeat the matching checks above after asset approval and import; code support alone is not audible integration.
+Gunfire, impact, and basic reload clips existed before 8B. The 26 new project-made placeholders are assigned to player/enemy prefabs and the game scene. Listen to each event above before accepting it; the EditMode reference checks do not prove audible gameplay. Boss music remains unassigned because no boss encounter exists.
 
 ## Automated verification on 2026-10-18
 
@@ -42,11 +42,17 @@ Only gunfire, impact, and basic reload clips existed before 8B. Any unassigned c
 
 - The project-made muzzle flash and impact materials now use URP Unlit so they remain bright under facility lighting. The impact prefab is larger and lasts 0.38 seconds; enemy death uses eight outward fragments over roughly 0.68 seconds instead of a solid red disc.
 - A frozen Game-view preview visibly distinguished concrete, metal, and enemy/death bursts. Unity recompiled the revised scripts without errors, and all 38 EditMode tests passed. The preview does not prove shot-triggered effects on both peers; a fresh two-player firing pass is still needed.
-- The local Unity Services settings currently show the M8B checkout as unlinked, so the fresh online pass cannot begin until the owner approves linking this checkout to the intended Dashboard project. The earlier session did reach the map with two players before the link stopped resolving in the Editor.
+- The earlier session reached the map with two players. The owner later approved local linkage to the existing Dashboard project; its IDs remain uncommitted.
 
 ## Acceptance review and functional smoke checks on 2026-10-19
 
-- See [COMBAT_AUDIO_VFX_REVIEW.md](COMBAT_AUDIO_VFX_REVIEW.md) for the criterion-by-criterion status and merge recommendation. The real scene/prefabs still have empty enemy, foley, zone cue, music, and ambience fields; code hooks are not audible completion.
+- See [COMBAT_AUDIO_VFX_REVIEW.md](COMBAT_AUDIO_VFX_REVIEW.md) for the then-current status and merge recommendation. At this point the scene/prefabs still had empty enemy, foley, zone cue, music, and ambience fields; code hooks were not audible completion.
 - The existing `Impact.wav` now plays from the pooled 3D impact prefab, including the shared host-confirmed impact path. A direct-scene Play Mode spawn reported an active source with spatial blend 1; a reused enemy death burst did not play the bullet-impact sound. An actual shot heard by both peers is still unverified.
 - Using only temporary in-memory test clips and local zone-state changes, the manager entered Warning, Combat, Warning, Combat, and Exploration in the expected order. A second zone's warning cue played during Combat, and Combat stayed active until the last active zone cleared. This tests state/source logic without claiming audible gameplay music or network delivery.
 - Unity 6000.6.5f1 compiled, all 38 EditMode tests passed, and the Editor console reported zero errors/warnings after the changes. A real two-player firing/listening run and Profiler measurement are still pending.
+
+## Placeholder wiring and host check on 2026-10-20
+
+- Unity imported 26 locally synthesized WAV placeholders. `ArcadeShooter > Assign M8B Placeholder Audio` assigned player, enemy, zone/mission, loop, and ambience references plus the `CombatAudio.mixer` routing. The mixer has Master, Music, SFX, Ambience, and UI buses. No third-party assets were downloaded.
+- All 40 EditMode tests passed after the assignments. The new tests check serialized references, buses and exposed volume parameters, and a Music-volume change to about −12.04 dB at 25%. They do not establish audible playback.
+- With the owner-approved local Unity project link, the MainMenu created a Relay lobby with a join code and 1/4 players. The Editor sign-in button separately requested installing Unity Hub even though Hub 3.22.2 was installed; anonymous Authentication for the game still succeeded. A new host/joiner combat and listening pass was not completed after the assignments. Do not mark phases B–D complete from the host lobby or static tests.

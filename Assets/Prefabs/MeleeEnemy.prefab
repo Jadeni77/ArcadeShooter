@@ -196,7 +196,7 @@ AudioSource:
   m_GameObject: {fileID: 23931735978811022}
   m_Enabled: 1
   serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
+  OutputAudioMixerGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
   m_audioClip: {fileID: 0}
   m_Resource: {fileID: 0}
   m_PlayOnAwake: 1
@@ -296,14 +296,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3e96870eb2fa84043ae1a8f195b438bb, type: 3}
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::ArcadeShooter.Enemies.EnemyAudio
-  idle: []
-  alert: []
-  attack: []
-  damage: []
-  death: []
+  idle:
+  - {fileID: 8300000, guid: e31892ca955b84a74bb58431b1561a91, type: 3}
+  alert:
+  - {fileID: 8300000, guid: b9020eb04610242fd90f6cc2263710d3, type: 3}
+  attack:
+  - {fileID: 8300000, guid: 36010d9e0d9924ee7bcfb8f64d0e27ea, type: 3}
+  damage:
+  - {fileID: 8300000, guid: 97e94884e06504e21b69faa6c637bfa1, type: 3}
+  death:
+  - {fileID: 8300000, guid: 86e5e5b452384424b9d0b3d0e067ef0f, type: 3}
   level: 0.65
   audibleDistance: 22
-  sfxGroup: {fileID: 0}
+  sfxGroup: {fileID: -6485200341288158640, guid: 792530a32820344698c5d9981a712252, type: 2}
 --- !u!1 &3787934970693111674
 GameObject:
   m_ObjectHideFlags: 0
