@@ -2,6 +2,7 @@ using System;
 using ArcadeShooter.UI;
 using ArcadeShooter.Networking;
 using ArcadeShooter.Missions;
+using ArcadeShooter.Enemies;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -134,13 +135,11 @@ namespace ArcadeShooter.Combat
                 networkRifle.RequestShot(ray.direction);
             else if (Physics.Raycast(ray, out RaycastHit hit, range, hitMask, QueryTriggerInteraction.Ignore))
             {
-                if (impactPrefab != null)
-                    Instantiate(impactPrefab, hit.point + hit.normal * 0.015f,
-                        Quaternion.FromToRotation(Vector3.forward, hit.normal));
-                weaponAudio.PlayImpact();
+                PlayConfirmedImpact(hit.point, hit.normal, ImpactEffect.Classify(hit.collider));
+                if (impactPrefab == null) weaponAudio.PlayImpact();
                 IDamageable damageable = hit.collider.GetComponentInParent<IDamageable>();
                 if (damageable != null && damageable.ApplyDamage(damage, hit.point))
-                    hud?.ConfirmHit();
+                    hud?.ConfirmHit(damageable is EnemyHealth enemy && enemy.IsDead);
             }
             if (magazine == 0)
                 BeginReload();
@@ -185,6 +184,9 @@ namespace ArcadeShooter.Combat
         {
             weaponAudio.PlayGunfire();
         }
+
+        public void PlayConfirmedImpact(Vector3 point, Vector3 normal, ImpactSurface surface) =>
+            ImpactEffect.Spawn(impactPrefab, point, normal, surface);
 
         private void CompleteReload()
         {

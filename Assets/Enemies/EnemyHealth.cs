@@ -12,11 +12,14 @@ namespace ArcadeShooter.Enemies
         [SerializeField, Min(1f)] private float maxHealth = 60f;
         private readonly NetworkVariable<float> health = new NetworkVariable<float>(60f);
         private ulong? damageSourcePlayer;
+        private bool deathPresented;
         public float Health => health.Value;
         public float MaxHealth => maxHealth;
         public bool IsDead => Health <= 0f;
         public event Action Damaged;
         public event Action Died;
+        public event Action AttackPresented;
+        public event Action AlertPresented;
 
         public override void OnNetworkSpawn()
         {
@@ -26,7 +29,7 @@ namespace ArcadeShooter.Enemies
                 health.Value = maxHealth;
                 MissionScoreTracker.Instance?.RegisterEnemySpawn(NetworkObjectId);
             }
-            if (IsDead) Died?.Invoke();
+            if (IsDead) PresentDeath();
         }
 
         public override void OnNetworkDespawn()
@@ -64,9 +67,38 @@ namespace ArcadeShooter.Enemies
             if (current < previous) Damaged?.Invoke();
             if (current <= 0f && previous > 0f)
             {
-                Died?.Invoke();
+                PresentDeath();
                 if (IsServer) StartCoroutine(DespawnAfterFeedback());
             }
+        }
+
+        private void PresentDeath()
+        {
+            if (deathPresented) return;
+            deathPresented = true;
+            Died?.Invoke();
+        }
+
+        public void BroadcastAttack()
+        {
+            if (IsServer && IsSpawned && !IsDead) PresentAttackRpc();
+        }
+
+        public void BroadcastAlert()
+        {
+            if (IsServer && IsSpawned && !IsDead) PresentAlertRpc();
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        private void PresentAttackRpc()
+        {
+            if (!IsDead) AttackPresented?.Invoke();
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        private void PresentAlertRpc()
+        {
+            if (!IsDead) AlertPresented?.Invoke();
         }
 
         private IEnumerator DespawnAfterFeedback()

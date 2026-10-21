@@ -19,6 +19,7 @@ namespace ArcadeShooter.Networking
         private NetworkPlayer player;
         private readonly ShotCadence cadence = new ShotCadence();
         private float reloadEndsAt;
+        private int remoteMagazineBeforeReload;
         private bool CombatAllowed => MissionController.Instance == null || MissionController.Instance.IsRunning;
 
         private void Awake()
@@ -96,8 +97,9 @@ namespace ArcadeShooter.Networking
                 bool damaged = target is EnemyHealth enemy
                     ? enemy.ApplyDamageFromPlayer(rifle.Damage, hit.point, OwnerClientId)
                     : target != null && target.ApplyDamage(rifle.Damage, hit.point);
+                ImpactRpc(hit.point, hit.normal, ImpactEffect.Classify(hit.collider));
                 if (damaged)
-                    ConfirmHitRpc();
+                    ConfirmHitRpc(target is EnemyHealth enemyHit && enemyHit.IsDead);
             }
             RemoteShotRpc();
             if (magazine.Value == 0) StartReload();
@@ -127,9 +129,15 @@ namespace ArcadeShooter.Networking
         }
 
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
-        private void ConfirmHitRpc()
+        private void ConfirmHitRpc(bool killed)
         {
-            if (IsOwner) GetComponentInChildren<ArcadeShooter.UI.WeaponHud>(true)?.ConfirmHit();
+            if (IsOwner) GetComponentInChildren<ArcadeShooter.UI.WeaponHud>(true)?.ConfirmHit(killed);
+        }
+
+        [Rpc(SendTo.Everyone, InvokePermission = RpcInvokePermission.Server)]
+        private void ImpactRpc(Vector3 point, Vector3 normal, ImpactSurface surface)
+        {
+            rifle.PlayConfirmedImpact(point, normal, surface);
         }
 
         [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
@@ -153,7 +161,13 @@ namespace ArcadeShooter.Networking
             if (!IsOwner)
             {
                 player.SetRemoteReload(newValue);
-                if (newValue) GetComponent<WeaponAudio>()?.PlayRemoteReload();
+                if (newValue)
+                {
+                    remoteMagazineBeforeReload = magazine.Value;
+                    GetComponent<WeaponAudio>()?.PlayRemoteReload();
+                }
+                else if (oldValue && CombatAllowed && magazine.Value > remoteMagazineBeforeReload)
+                    GetComponent<WeaponAudio>()?.PlayRemoteReloadComplete();
             }
         }
         private void SyncOwner()
