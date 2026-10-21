@@ -1,6 +1,6 @@
 # Milestone 8B acceptance review
 
-Reviewed 2026-10-20 against the original brief. `feature/combat-audio-vfx` remains draft PR #12. **Recommendation: keep it open.** Live two-player Relay runs now prove local and remote gunfire source playback and both clients' Exploration → Combat → Exploration music path with the assigned clips. They did not complete foley, every enemy event, warning/clear cue audibility, extraction, results cues, duplicate-effect, or listening checks required by the original acceptance criteria.
+Reviewed 2026-10-20 against the original brief; owner decision recorded 2026-10-21. **The owner reports that M8B works and explicitly approved merging PR #12.** Live two-player Relay runs prove local and remote gunfire source playback and both clients' Exploration → Combat → Exploration music path with the assigned clips. The review did not independently complete foley, every enemy event, warning/clear cue audibility, extraction, results cues, duplicate-effect, or listening checks. Those limits remain recorded and are not being represented as tested passes.
 
 ## Implemented and tested
 
@@ -36,4 +36,4 @@ The 26 new WAVs were synthesized in this repository without downloaded samples o
 
 No rigged first-person hands, articulated enemy attack/damage/death animations, surface-specific particle textures, professionally designed weapon/enemy/footstep sounds, or composed music are present. Those are **replacement and polish** tasks in [ROADMAP.md](ROADMAP.md), not a reason to call silent or broken M8B playback complete. No external asset was downloaded or purchased for this review; [ASSET_LICENSES.md](ASSET_LICENSES.md) records the project-made placeholders and optional candidates awaiting approval.
 
-Before merge, complete the remaining [two-player checklist](COMBAT_AUDIO_VFX_TESTING.md) and record each peer's audible/visible observations, fix any broken playback or transition it reveals, and repeat the Console check. Performance can be reported separately with an actual Profiler measurement; no 60 FPS claim is made here.
+The owner accepted this state for merge on 2026-10-21 after playing it. The remaining [two-player checklist](COMBAT_AUDIO_VFX_TESTING.md), clean Console repeat, and audible/visual observations remain useful follow-up validation; fix any concrete failures discovered there. Performance can be reported separately with an actual Profiler measurement; no 60 FPS claim is made here.

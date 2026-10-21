@@ -1,17 +1,17 @@
 # Project status
 
-Last reviewed: 2026-10-20 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-21 (America/New_York). Inspect `git status` and the project before each task.
 
-## M8B acceptance review and merge recommendation
+## M8B acceptance and merge decision
 
-- [M8B acceptance audit](COMBAT_AUDIO_VFX_REVIEW.md): **not ready for merge yet**. The scene and prefabs now contain 26 locally synthesized placeholder clips for weapon handling, enemy and player feedback, cues, music, and ambience. `CombatAudio.mixer` has Master, Music, SFX, Ambience, and UI buses; source routing and exposed volumes are assigned. Live two-player runs verified local/remote gunfire source playback and both clients' Exploration → Combat → Exploration music path. The full cue, foley, enemy, results, and audible acceptance route remains open.
+- [M8B acceptance audit](COMBAT_AUDIO_VFX_REVIEW.md): **owner accepted for merge on 2026-10-21 through PR #12 after reporting that it works**. The scene and prefabs contain 26 locally synthesized placeholder clips for weapon handling, enemy and player feedback, cues, music, and ambience. `CombatAudio.mixer` has Master, Music, SFX, Ambience, and UI buses; source routing and exposed volumes are assigned. Live two-player runs verified local/remote gunfire source playback and both clients' Exploration → Combat → Exploration music path. The full cue, foley, enemy, results, and audible route was not independently recorded as a passing test.
 - Earlier fixes moved `Impact.wav` to the pooled 3D impact, prevented that sound on enemy death reuse, restored a second zone's warning cue while Combat remains active, and guarded reload completion. Direct-scene Play Mode verified the impact source and multi-zone music state transitions with temporary clips. On 2026-10-20 Unity compiled the new references, all **40 EditMode tests passed**, and the new mixer test changed Music volume to about −12.04 dB at 25%.
 - The owner approved linking this checkout to their existing Unity organization and project. The local, uncommitted Dashboard IDs allowed a Relay lobby, a Player 2 join (2/4), and a map load on both peers. With assigned clips, both peers played exploration and ambience loops, then combat music after Zone A activated and exploration again after its three-enemy wave cleared. Player 2's gunfire source and the host's remote gunfire source played on SFX; three host enemy death sources reported spatial SFX playback. This is a partial live pass. Do not claim audible completion, duplicate-free multiplayer, or 60 FPS from these observations.
 - Future **polish** tasks are listed in [ROADMAP.md](ROADMAP.md): replace locally synthesized sounds/music, primitive muzzle/impact/death visuals, and interim weapon/enemy animation with approved licensed assets. No external asset was downloaded for this review.
 
 ## Current state
 
-### Milestone 8B: combat audio, VFX, and adaptive music (feature branch)
+### Milestone 8B: combat audio, VFX, and adaptive music (owner accepted)
 
 - M8A was merged into `develop` by [PR #11](https://github.com/Jadeni77/ArcadeShooter/pull/11). `feature/combat-audio-vfx` starts from that merge (`d1cdb26`) in an isolated worktree; the older owner checkout and its uncommitted Unity changes were preserved.
 - Confirmed host raycasts now broadcast a compact impact point/normal/surface category for short pooled URP-compatible bursts on every peer. Metal cover, concrete, and enemies have different colored fragment shapes. The existing local muzzle flash remains tied to the fire cadence; the remote rifle gained a short barrel flash. The owner's hit marker distinguishes a host-confirmed kill. Existing damage, ammunition, cadence, and recoil code remain the authority.
@@ -126,4 +126,4 @@ The owner's checkouts also hold other uncommitted local edits (materials, scenes
 
 ## Next milestone
 
-M7 is merged. M8A is the active environment and lighting PR; M8B audio and combat VFX must wait until M8A is reviewed. M9 progression and replayability is later. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md) and are not to be built earlier. Follow-ups from M6 that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md).
+M8B is approved for merge through PR #12. M9 progression and replayability is next but has not begun. The M9 mission portal and team-based rewards are recorded in [D-020](DECISIONS.md). Follow-ups from M6 and M8B that are not yet scheduled are listed in [ROADMAP.md](ROADMAP.md) and [COMBAT_AUDIO_VFX_TESTING.md](COMBAT_AUDIO_VFX_TESTING.md).

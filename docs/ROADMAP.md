@@ -13,7 +13,7 @@ Each milestone should leave a playable, testable slice. Complete its acceptance 
 | M6 — missions, extraction, and scoring | Merged by PR #7 on 2026-10-17: clear both danger zones, collect a sample, extract together, show success/failure and synchronized statistics, then replay or return to the lobby. | Two players can complete the full loop from lobby through combat, three objectives, extraction, and results. Both clients agree on the result; replay resets all match state; movement and camera remain player-controlled until results. |
 | M7 — weapon visuals and animations | Merged by PR #10 on 2026-10-17. ADS, view motion, reload presentation, remote rifle, and optional rig adapter use project-made interim geometry. | See [WEAPON_VISUALS_TESTING.md](WEAPON_VISUALS_TESTING.md) for the remaining human feel and two-client checks. |
 | M8A — environment and lighting | Merged by PR #11 on 2026-10-18. The existing map has an approved research facility look with CC0 modular art and restrained URP lighting. | The [manual checklist](ENVIRONMENT_VISUALS_TESTING.md) still needs a recorded runtime pass. |
-| M8B — audio and combat VFX | In progress on `feature/combat-audio-vfx` after M8A. Improve existing weapon/impact/enemy presentation and add local state-driven audio/music without changing gameplay authority. | Use the [8B checklist](COMBAT_AUDIO_VFX_TESTING.md) and [acceptance audit](COMBAT_AUDIO_VFX_REVIEW.md). Project-made placeholder clips and mixer routing are assigned. Two-player runs verified local/remote gunfire and Exploration → Combat → Exploration playback; the remaining cues, duplicate effects, and full-route checks remain M8B acceptance work. |
+| M8B — audio and combat VFX | Owner accepted the feature for merge on 2026-10-21 through PR #12. Improved weapon/impact/enemy presentation and added local state-driven audio/music without changing gameplay authority. | Project-made placeholder clips and mixer routing are assigned. Two-player runs verified local/remote gunfire and Exploration → Combat → Exploration playback. The owner reports the milestone works; the remaining cue, duplicate-effect, and full-route observations stay documented in the [8B checklist](COMBAT_AUDIO_VFX_TESTING.md) and [acceptance audit](COMBAT_AUDIO_VFX_REVIEW.md), without a claim that each was measured. |
 | M9 — progression and replayability | Planned. Includes the mission portal and team-based rewards, with difficulty that rises with the number of players ([D-020](DECISIONS.md)). The owner's milestone brief sets the rest of the scope. | Set in the M9 brief. |
 
 ## Milestone discipline
@@ -26,7 +26,7 @@ Each milestone should leave a playable, testable slice. Complete its acceptance 
 
 **First development milestone:** M1, a small explorable graybox with responsive first-person movement and no automatic travel.
 
-M1–M4 were merged into `develop` by PRs #2–#5, M5 by PR #6, M6 by PR #7, M7 by PR #10, and M8A by PR #11. M8B is in progress. See [STATUS.md](STATUS.md).
+M1–M4 were merged into `develop` by PRs #2–#5, M5 by PR #6, M6 by PR #7, M7 by PR #10, and M8A by PR #11. The owner accepted M8B PR #12 for merge on 2026-10-21. See [STATUS.md](STATUS.md).
 
 ## Not yet scheduled
 
@@ -44,4 +44,4 @@ These items came out of M6 and are not part of M7–M9 as planned. Agree on a mi
 - Add rigged first-person hands and enemy attack, damage, and death animations when suitable approved art and rigs exist. Advanced character animation remains outside M8B; the current timed weapon motion and enemy tint/death burst are the interim presentation.
 - Replace the synthesized exploration, warning, combat, and facility ambience loops with licensed music and sound design. Add detailed mechanical room ambience where it improves the existing facility. Boss music remains an extension point until a boss milestone is approved.
 
-These are asset and presentation replacements. The original M8B audio playback, music transitions, mixer behavior, and multiplayer acceptance checks still require a recorded gameplay pass before this milestone is considered complete.
+These are asset and presentation replacements. The owner accepted M8B for merge with project-made placeholders. The unmeasured playback, transition, mixer, and multiplayer details remain follow-up validation in the [8B checklist](COMBAT_AUDIO_VFX_TESTING.md); no full-route or 60 FPS result is claimed.
