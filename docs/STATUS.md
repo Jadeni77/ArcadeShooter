@@ -2,6 +2,14 @@
 
 Last reviewed: 2026-10-24 (America/New_York). Inspect `git status` and the project before each task.
 
+## M10 Stage B — cinematic main menu and multiplayer lobby (review branch)
+
+- The owner accepted the revised cinematic visual direction after reviewing Stage A concepts in [draft PR #14](https://github.com/Jadeni77/ArcadeShooter/pull/14). This branch starts at the M9 merge on `develop` (`d03d873`) in a separate worktree; the owner's dirty checkout is untouched.
+- The existing `MainMenu` scene now has an original facility backdrop, full-screen navigation, profile and audio pages, and a squad-staging lobby with four operator lanes. The existing Host, Join, Start, Leave, cosmetic, and difficulty controls remain wired to their existing systems. New session player properties carry display name, selected finish/title, and ready state. The host's first mission launch requires every connected player to be ready. Audio sliders persist local mixer levels.
+- The scene uses existing uGUI and TextMesh Pro, with shared cyan/amber/night colors and common button states. The Stage A design system remains in PR #14; see [Stage B review](M10_STAGE_B_REVIEW.md) for the implemented scope and screenshot limits. The two backdrops are original generated art, not screenshots or third-party game assets.
+- Unity 6000.6.5f1 compiled the scene and rendered Edit-mode captures at 1280×720, 1600×900, and 2560×1600 without a new C# error. The full EditMode suite passed 44 of 45 tests; the sole failure is the previously recorded M8B audio mixer parameter test under batch mode. These captures verify layout and visual hierarchy, not Play-mode button behavior or online synchronization. A two-client macOS run, runtime focus/cursor checks, and subjective typography approval remain open. This worktree has no Unity cloud link, so Relay host/join cannot be claimed here.
+- Stage C–F UI work and final M10 acceptance are still open. Do not call this Stage B branch the completed M10 milestone.
+
 ## M9 in progress — progression and replayability
 
 - On 2026-10-24, the owner instructed merging draft PR #13 into `develop`. That authorizes integration of the PR's scoped implementation; the manual validation below remains open and M9 is not yet marked accepted.
