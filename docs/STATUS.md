@@ -2,9 +2,15 @@
 
 Last reviewed: 2026-10-24 (America/New_York). Inspect `git status` and the project before each task.
 
-## M9 in progress — progression and replayability
+## M10 Stage A — advanced UI/UX visual direction (design review)
 
-- On 2026-10-24, the owner instructed merging draft PR #13 into `develop`. That authorizes integration of the PR's scoped implementation; the manual validation below remains open and M9 is not yet marked accepted.
+- [M9 PR #13](https://github.com/Jadeni77/ArcadeShooter/pull/13) merged into `develop` on 2026-10-24; `feature/advanced-ui-ux` starts from that merge (`d03d873`) in a separate worktree. The older checkout's uncommitted Unity changes remain untouched. M9's manual acceptance gaps below remain open.
+- A [source/scene UI inventory](ui-design/INVENTORY.md) and [design system proposal](ui-design/DESIGN_SYSTEM.md) cover the Main Menu, Lobby, combat/mission HUD, results, profile/loadout, and pause/settings. Six editable [Figma mockups](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf) show the proposed research-facility tactical interface. Screenshots were visually reviewed at 1600 × 900; these are concepts, not Game-view captures.
+- Stage A changes no Unity gameplay, networking, scene, prefab, package, or third-party creative asset. The visual direction requires owner review before implementation. Existing UI remains the prototype; compilation, before/after Unity screenshots, responsive layout, two-client behavior, and performance remain for Stages B–F.
+
+## M9 merged — progression and replayability (manual acceptance open)
+
+- On 2026-10-24, the owner instructed merging PR #13 into `develop`; GitHub reports it merged at 20:02 UTC. The manual validation below remains open and M9 is not yet marked accepted.
 - M8B merged into `develop` as [PR #12](https://github.com/Jadeni77/ArcadeShooter/pull/12) on 2026-10-21. The M9 feature branch starts at that merge (`a07cb80`) in `/private/tmp/ArcadeShooter-M9`. The owner's older, dirty checkout was left untouched.
 - The branch adds versioned local XP profiles, a configurable level curve, level 2 teal rifle finish, level 3 Pathfinder title, host-issued per-player XP receipts with a per-match duplicate gate, Normal/Hard session selection, 25% Hard enemy health and completion XP bonuses, and two six-enemy Zone B wave layouts. The results screen shows personal XP, levels, unlocks, and difficulty; the lobby shows progression, locked/unlocked items, selection, and difficulty. See [rules and manual checklist](PROGRESSION_TESTING.md).
 - No new third-party asset was imported. The finish recolors the project-made rifle meshes; audiovisual placeholders remain future polish work.
