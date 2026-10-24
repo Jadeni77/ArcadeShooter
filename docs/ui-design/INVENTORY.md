@@ -1,6 +1,6 @@
 # M10 UI inventory and integration audit
 
-Reviewed 2026-10-24 from `develop` at `d03d873` (M9 merged). This is a source and serialized-scene audit, not a live UI or multiplayer test. [Figma review mockups](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf) illustrate the proposed direction; they are not screenshots of Unity.
+Reviewed 2026-10-24 from `develop` at `d03d873` (M9 merged). This is a source and serialized-scene audit, not a live UI or multiplayer test. The [cinematic revision](DESIGN_SYSTEM.md) is the current visual proposal; its PNGs and editable Figma menu/lobby are not screenshots of Unity.
 
 | Surface | Existing source and behavior | Main UX gap | State to consume during implementation |
 | --- | --- | --- | --- |
@@ -16,8 +16,8 @@ Reviewed 2026-10-24 from `develop` at `d03d873` (M9 merged). This is a source an
 ## Existing assets and technical constraints
 
 - Runtime UI is uGUI with TextMesh Pro. The menu scene has one `EventSystem` using `InputSystemUIInputModule`; the major canvases use 1920 × 1080 `CanvasScaler` references. No runtime UXML/USS was found.
-- The bundled Liberation Sans SDF is the only UI font recorded in `ASSET_LICENSES.md`. The Figma concepts use editable Inter text as a visual typography proposal. Importing a new font into Unity requires approval and a license entry; the concepts themselves add no game asset.
-- The research facility art is approved for the map and could supply a live menu backdrop if a cheap camera view is practical. The Stage A Figma backdrops are project-original vector geometry, not a new third-party asset.
+- The bundled Liberation Sans SDF is the only UI font recorded in `ASSET_LICENSES.md`. The new review renders use macOS system DIN Condensed and Avenir Next as concept typography; no font file is imported. Importing a distributable font into Unity requires approval and a license entry.
+- The research facility art is approved for the map and could supply a live menu backdrop if a cheap camera view is practical. The new Stage A backdrops are original generated concept images outside Unity, not approved game assets. The earlier Figma vector backdrops are archived with the first visual pass.
 - Existing `session.Players` UI shows numbered slots, not verified display names. Ready-state data is absent. Stage B needs a small compatible session/player property design before those elements become functional.
 - Four separate UI controllers/canvases currently cover menu, player HUD, encounter HUD, and mission/results. Shared styles should be built as uGUI prefabs/theme data while presentation consumes existing state. A broad UI Toolkit migration would add risk without solving missing data or layout behavior.
 

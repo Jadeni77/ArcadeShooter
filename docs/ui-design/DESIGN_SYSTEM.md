@@ -1,66 +1,56 @@
-# M10 visual direction — review proposal
+# M10 visual direction — cinematic revision for owner review
 
-**Status:** Stage A proposal, awaiting owner visual review before Unity UI implementation. [Editable Figma concepts](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf) cover [Main Menu](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=2-2), [Lobby](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=2-56), [Combat HUD](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=3-2), [Results](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=3-57), [Profile and Loadout](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=3-101), and [Pause/Settings](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=3-147). All Figma screens are editable text and vector layers; none are Unity implementation screenshots.
+**Status:** Stage A design proposal. The owner rejected the first pass as web-like and supplied a collage of game UI references. This revision responds with original, environment-led concepts. Approval is still required before Unity UI implementation.
 
-Static review renders: [menu](mockups/main-menu.png), [lobby](mockups/lobby.png), [combat HUD](mockups/combat-hud.png), [results](mockups/mission-results.png), [profile/loadout](mockups/profile-loadout.png), [pause/settings](mockups/pause-settings.png). The two `figma-stage-a*.js` files preserve the editable mockup construction source.
+## Review the revision
 
-## Identity
+| Surface | New review render | Design intent |
+| --- | --- | --- |
+| Main Menu | [Cinematic menu](mockups/main-menu-v2.png) | Facility scene carries the mood; compact operation navigation and an active mission dossier. |
+| Multiplayer Lobby | [Four-operator staging bay](mockups/lobby-v2.png) | Character silhouettes lead; each operator has an attached equipment and ready lane. |
+| Combat HUD | [First-person combat](mockups/combat-hud-v2.png) | Thin edge-aligned objective, squad, health, ammunition, and encounter cues leave the aiming area open. |
+| Mission Results | [Extraction aftermath](mockups/mission-results-v2.png) | Mission rank and atmosphere lead; team statistics and XP remain legible secondary information. |
+| Profile / Loadout | [Operator profile](mockups/profile-loadout-v2.png) | Identity and progression sit beside the squad staging scene. |
+| Pause / Settings | [In-mission pause](mockups/pause-settings-v2.png) | The world remains visible, darkened beneath the controls. Online play continues. |
 
-**Direction:** research-facility tactical interface. Dark navy surfaces echo the approved abandoned facility, cyan indicates the primary action or live information, amber marks objectives and incoming threats, red marks damage/failure, and green marks completion or readiness. Restrained thin structural lines, strong uppercase labels, spacious cards, and a visible first-person sightline keep the game readable. The menu backdrop is project-original facility geometry in the concept; a production background should use approved scene art or similarly original geometry.
+The [editable Figma file](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf) has a **Stage A / Cinematic revision** page with the [menu](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=6-3) and [lobby](https://www.figma.com/design/0stgFPzLkSBN7UbWtdlohf?node-id=6-40) in editable text/vector layers over uploaded original concept art. The prior six Figma screens are retained on **Archive / first visual pass** for comparison. The Figma Starter call limit stopped further remote edits during this revision; the six new PNG renders and their [AppKit drawing source](render-concepts.swift) are the complete current review set. These are concept images, not Unity Game-view screenshots or game assets.
+
+## Art direction
+
+- **World first.** Keep the research facility and 2–4 player first-person cooperative premise visible. Use full-bleed environment or character imagery; UI sits on thin rails, local dark washes, and compact panels. The game never moves a player or camera along a rail.
+- **Tactical structure.** Condensed uppercase display type, numbered operations, thin dividers, equipment marks, and precise state language replace rounded dashboard cards. Save large typography for mission title, rank, and countdown; routine data stays compact.
+- **Color roles.** Amber calls out active operation, launch, danger, and rank. Cyan marks live technical information, focus, and progress. Green marks verified ready/completed states. Red is reserved for actual damage, failure, or destructive confirmation. Pair colors with words and shapes.
+- **Depth and clarity.** Confine translucent black to text contrast areas. Avoid filling screens with equal-weight cards. The HUD protects the center sightline; large warning messages collapse to a compact wave tracker.
+- **State fidelity.** Names, join code, readiness, score, XP, and counts in the renders are illustrative. Runtime values must come from real session, mission, weapon, and profile state.
+
+The four original backdrops in [concept-art](concept-art/) were generated for this review from text prompts about the project's facility, squad, combat, and extraction. The user's collage was a quality and layout reference only. No screenshot, logo, character, or art from it was copied into the deliverables. The images are **not imported into Unity** and are not approved production art. Overlays were drawn locally with AppKit. They use macOS DIN Condensed and Avenir Next as concept typography; these system fonts are not included in the project. Obtain approval and log a distributable font license before importing a replacement into Unity. The game currently uses logged Liberation Sans SDF.
+
+## Proposed visual tokens
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `ink` | `#071018` | Full-screen background and dark button text |
-| `deep` | `#0B1720` | Secondary background, preview wells |
-| `panel` | `#10232D` | Primary cards and overlays |
-| `panelRaised` | `#142B36` | List rows and secondary buttons |
-| `line` | `#2A4A53` | Hairline dividers and focus-safe panel borders |
-| `cyan` | `#57D9DB` | Primary action, selected state, information |
-| `cyanDeep` | `#178F9C` | Accent surfaces and reserved highlights |
-| `paper` | `#E8F5F4` | Main text |
-| `muted` | `#9CB7BC` | Secondary text; avoid on bright surfaces |
-| `amber` | `#F5BA61` | Warnings, objectives, rank emphasis |
-| `red` | `#F27872` | Critical health, failure, destructive confirmation |
-| `green` | `#78D8A8` | Completed, ready, unlocked, success |
+| `night` | `#02080C` | Text wash and rails, typically at 65–96% opacity |
+| `white` | `#EFF4F2` | Primary text and health segments |
+| `soft` | `#BFCBC9` | Secondary text |
+| `dim` | `#8B9A9C` | Nonessential inactive labels |
+| `amber` | `#E3AD55` | Active operation, launch, danger, rank |
+| `cyan` | `#7AD7DB` | Technical state, focus edge, progress |
+| `green` | `#A8D797` | Ready, complete, unlocked |
+| `red` | `#EB776C` | Critical health, failure, destructive action |
 
-The primary and muted text on `panel`, plus the dark text on the cyan action, exceed a 4.5:1 contrast target by palette calculation. During implementation, inspect actual Game-view output over bright and dark parts of the map. Use icon shape and words with status colors: `READY`, `NOT READY`, `LOCKED`, `CLEARED`, and `CRITICAL` must remain legible without color perception.
+Reference compositions are 1600 × 900. The conceptual type ramp is 90–100 px for exceptional titles, 32–42 px for headings/actions, 19–23 px for primary data, and 13–17 px for secondary labels. Judge actual size and contrast in the Unity Game view at 1280 × 720, 1920 × 1080, 2560 × 1440, and a common 16:10 Mac size. Essential data should remain at least 14 effective pixels at 720p. Use a CanvasScaler reference of 1920 × 1080 with anchored safe areas; do not assume this concept scale transfers directly.
 
-## Type, spacing and layout
+## Proposed behaviors
 
-- **Typography proposal:** Inter Black/Bold for title and numerals; Inter Regular/Medium/Semi Bold for body and controls. The game currently ships Liberation Sans through TextMesh Pro. Owner approval and license logging are required before a font is imported; the implementation can begin with existing Liberation Sans while type approval is pending.
-- **Type ramp at the 1920 × 1080 reference:** display 72; screen heading 52; section heading 28; card title 22; body 18; control 16; caption 13; micro-label 12. In combat, key HP/ammo numbers are 32–40. Avoid shrinking essential text below 14 effective pixels at 1280 × 720.
-- **Spacing scale:** 4, 8, 12, 16, 24, 32, 48, 64. Cards use 24–32 padding; 8px corner radius; 1px low-contrast edge. Primary controls target at least 52px height at the reference resolution.
-- **Responsive plan:** uGUI `CanvasScaler` at 1920 × 1080, match width/height 0.5. Use edge/corner anchors and layout groups. At 720p, lobby mission and loadout cards may stack or compress while preserving 44px effective click targets. Reserve a safe margin of 32px at 1080p and 20px at 720p. Verify 16:9 at 1280 × 720, 1920 × 1080, 2560 × 1440 and 16:10 at 2560 × 1600 (or an available common Mac size).
+- **Menu:** Play / Multiplayer leads. Profile, Settings, and Quit remain explicit. Existing Host and Join controls remain functional inside Multiplayer; the active operation dossier is informational until mission selection exists.
+- **Lobby:** Four positions correspond to real session members. Display names, loadout/cosmetic, ready state, and code copy need real data and operations. Host-only Start requires valid session and readiness conditions. Posed operators are illustrative, not existing 3D prefabs.
+- **HUD:** Objective and team health stay left, encounter/wave state at the top, player health and ammo in lower corners. The center aim stays clear. All counts bind to replicated authority.
+- **Results:** Frozen mission outcome, rank, score, and time lead. Personal XP is separate from team score. Host actions and client waiting state reflect the real role. Pictured numbers are placeholders.
+- **Profile/loadout:** Show the existing assault rifle, M9 level/progression, and two finish choices. A 3D preview must use approved project models or properly licensed new assets.
+- **Pause/settings:** Online simulation continues. Opening redirects the Input System to UI and releases aim; Resume restores game input. Leave asks for confirmation. Settings need persistence and real value binding.
 
-## Reusable implementation pieces proposed for Stages B–E
+## Implementation proposal after approval
 
-| Piece | Variants and behavior |
-| --- | --- |
-| `UiTheme` ScriptableObject | Semantic colors, type sizes, spacing, border and motion durations; one source for menu/HUD/results. |
-| Action button prefab | Primary, secondary, danger; default, hover, focused, pressed, disabled and busy. Labels stay explicit; busy blocks repeat action. |
-| Panel/card prefab | Solid menu card, translucent HUD card, compact status row, preview well. |
-| Status badge | Host, Ready, Not Ready, Connected, Loading, Locked, Cleared, Critical; color + text/shape. |
-| Progress meter | Health, XP, extraction time, volume; labeled current/maximum values when meaningful. |
-| Notification banner | Warning, objective update, area clear, error; prioritizes one event, then returns to compact HUD. |
-| Modal dialog | Confirm Leave Match/Session; explicit consequence and keyboard focus. |
-| Navigation focus | Mouse hover and selected keyboard state use a visible cyan outline/fill change; controller navigation may follow later. |
+Use existing uGUI/TextMesh Pro with theme data and reusable rail, action, status, progress, warning, and confirmation components. Actions need mouse/keyboard focus, pressed, disabled, loading, and error states. Motion targets: 120–180 ms focus, 180–240 ms panel transition, and 300–450 ms for a new encounter notice before it compacts. Reduced motion removes positional travel and count-up. UI time remains unscaled while the online mission runs.
 
-Transitions: 120–180 ms hover/focus, 180–240 ms panel fade/slide, 300–450 ms event notification, then compact state. Health and XP meters animate the display only, never the underlying value. Reduced motion disables positional travel and count-up while keeping readable state changes. Unscaled time allows menus and results to respond while game time continues.
-
-## Screen behaviors represented in the mockups
-
-- **Menu:** Multiplayer is the dominant path, with Profile, Settings and Quit present. The conceptual facility view can animate very slowly only if profiling supports it. The existing host/join form belongs inside the Multiplayer flow.
-- **Lobby:** Four slots, join-code copy, host control, mission/difficulty and selected rifle finish form one briefing. Names and ready state in the drawing are proposed features; the current code has numbered players and no ready networking. Start remains host-only and must be disabled until the final rules are satisfied.
-- **HUD:** Objectives and squad state hug upper edges. A short danger banner turns into a compact wave tracker. Health/ammo occupy lower corners. Aim space remains open. Extraction replaces zone information when relevant.
-- **Results:** Mission outcome, rank and team score lead. The leaderboard and local XP/reward are distinct. Host replay/lobby actions and client waiting text must reflect the real session role.
-- **Profile/loadout:** One existing assault rifle, its current stats and two M9 cosmetic choices. The drawing's rifle silhouette is only a design proxy; production preview must use the project model if feasible.
-- **Pause/settings:** The online mission continues. Escape releases the cursor and gameplay action map while the menu owns focus. Leaving asks for confirmation; volume, sensitivity and display choices persist locally.
-
-## Implementation sequence after approval
-
-1. Build theme data and shared uGUI prefabs; apply them to Main Menu and Lobby first, preserving existing controller actions. Capture actual before/after Unity screenshots.
-2. Integrate lobby membership, names/ready state, code copy, loading/error states and host-only gating with multiplayer validation.
-3. Rework player/mission/encounter HUD presenters around existing events, then loadout/profile and finally results/pause/settings.
-4. Verify gameplay input, two-client state, four target resolutions, runtime screenshot quality, and UI cost. Record exact measured results and unresolved gaps.
-
-No Unity scene, prefab, gameplay logic, package, or third-party creative asset is changed in Stage A.
+Stage B: menu/lobby; C: HUD; D: profile/loadout; E: results/pause/settings; F: visual, multiplayer, input, and performance validation. Capture actual before/after Unity screenshots, compile, verify target resolutions, and test the lobby/HUD/results with two clients. Stage A changes no Unity scene, prefab, gameplay, networking, package, or production asset.
