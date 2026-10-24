@@ -1,9 +1,10 @@
 # Project status
 
-Last reviewed: 2026-10-23 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-24 (America/New_York). Inspect `git status` and the project before each task.
 
 ## M9 in progress — progression and replayability
 
+- On 2026-10-24, the owner instructed merging draft PR #13 into `develop`. That authorizes integration of the PR's scoped implementation; the manual validation below remains open and M9 is not yet marked accepted.
 - M8B merged into `develop` as [PR #12](https://github.com/Jadeni77/ArcadeShooter/pull/12) on 2026-10-21. The M9 feature branch starts at that merge (`a07cb80`) in `/private/tmp/ArcadeShooter-M9`. The owner's older, dirty checkout was left untouched.
 - The branch adds versioned local XP profiles, a configurable level curve, level 2 teal rifle finish, level 3 Pathfinder title, host-issued per-player XP receipts with a per-match duplicate gate, Normal/Hard session selection, 25% Hard enemy health and completion XP bonuses, and two six-enemy Zone B wave layouts. The results screen shows personal XP, levels, unlocks, and difficulty; the lobby shows progression, locked/unlocked items, selection, and difficulty. See [rules and manual checklist](PROGRESSION_TESTING.md).
 - No new third-party asset was imported. The finish recolors the project-made rifle meshes; audiovisual placeholders remain future polish work.
