@@ -1,5 +1,13 @@
 # Technical architecture
 
+## M9 local progression and replayability
+
+`ProgressionRules` owns the level thresholds, XP formula, and unlock conditions. `LocalProfile` reads and atomically writes a versioned JSON profile under `Application.persistentDataPath`. It saves total XP, an unlock bit mask, selected finish/title, lifetime completion counts, and claimed result IDs. An unknown version or corrupt file stays untouched and blocks writes. The persistent `MultiplayerSessionController` owns the current machine's profile and lobby presentation; each client has its own profile.
+
+`MissionController` and `MissionScoreTracker` remain the host authorities for the terminal result and personal combat score. On finishing, the host sends a calculated XP receipt with a new per-run result ID to each still-connected player object's owner. A living successful extractor earns completion XP; connected non-extractors get the documented reduced share. The receiver claims the ID once and saves locally. Clients cannot submit score or XP award RPCs. This is a cooperative, local-save model: a malicious host or modified client can still forge its own local progression, and data does not follow an account to another machine.
+
+The host writes Normal/Hard to a Unity Session property while in the lobby. At scene load, it copies that selection to a mission NetworkVariable and randomly selects one of two Zone B encounter variants. Hard raises enemy health by 25%; Normal retains the previous value. `EnemyWaveSpawner` uses the existing serialized wave definitions and alternate 3/3 wave set, but still relies on `SpawnPlanner` and baked markers to validate positions. The mission replicates the variant, so the zone HUD and both peers use the same configuration. The owner selects only unlocked cosmetics in the local lobby. A small cosmetic enum is sent from the owner to its player object; the server replicates it for remote rifle presentation. Cosmetic replication is not an entitlement check.
+
 This document records the current implementation and preserves the earlier planning baseline below it.
 
 ## M8B combat presentation and local music

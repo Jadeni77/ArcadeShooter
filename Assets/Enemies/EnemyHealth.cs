@@ -14,7 +14,8 @@ namespace ArcadeShooter.Enemies
         private ulong? damageSourcePlayer;
         private bool deathPresented;
         public float Health => health.Value;
-        public float MaxHealth => maxHealth;
+        public float MaxHealth => maxHealth * (MissionController.Instance != null &&
+            MissionController.Instance.Difficulty == ArcadeShooter.Progression.MissionDifficulty.Hard ? 1.25f : 1f);
         public bool IsDead => Health <= 0f;
         public event Action Damaged;
         public event Action Died;
@@ -26,10 +27,15 @@ namespace ArcadeShooter.Enemies
             health.OnValueChanged += OnHealthChanged;
             if (IsServer)
             {
-                health.Value = maxHealth;
+                health.Value = MaxHealth;
                 MissionScoreTracker.Instance?.RegisterEnemySpawn(NetworkObjectId);
             }
             if (IsDead) PresentDeath();
+        }
+
+        public void ApplyMissionDifficulty()
+        {
+            if (IsServer && !IsDead) health.Value = MaxHealth;
         }
 
         public override void OnNetworkDespawn()

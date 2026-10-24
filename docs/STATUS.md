@@ -1,6 +1,14 @@
 # Project status
 
-Last reviewed: 2026-10-21 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-23 (America/New_York). Inspect `git status` and the project before each task.
+
+## M9 in progress — progression and replayability
+
+- M8B merged into `develop` as [PR #12](https://github.com/Jadeni77/ArcadeShooter/pull/12) on 2026-10-21. The M9 feature branch starts at that merge (`a07cb80`) in `/private/tmp/ArcadeShooter-M9`. The owner's older, dirty checkout was left untouched.
+- The branch adds versioned local XP profiles, a configurable level curve, level 2 teal rifle finish, level 3 Pathfinder title, host-issued per-player XP receipts with a per-match duplicate gate, Normal/Hard session selection, 25% Hard enemy health and completion XP bonuses, and two six-enemy Zone B wave layouts. The results screen shows personal XP, levels, unlocks, and difficulty; the lobby shows progression, locked/unlocked items, selection, and difficulty. See [rules and manual checklist](PROGRESSION_TESTING.md).
+- No new third-party asset was imported. The finish recolors the project-made rifle meshes; audiovisual placeholders remain future polish work.
+- Unity 6000.6.5f1 compiled with no new C# errors. The final focused EditMode run passed all 5 M9 progression/scene tests. The full EditMode run passed 44 of 45 tests. The only failure was the existing `M8BAudioIntegrationTests.MixerContainsRoutedBusesWithCallableVolumeParameters`: in batch mode `MusicVolume` read back 0 dB instead of −12.04 dB, both with and without `-nographics`. Existing `EnvironmentVisualsSceneSetup` API deprecation warnings remain. Two-player macOS, restart, replay, cosmetics, and full gameplay regression checks have not been performed on this branch; this worktree has no Unity cloud project link. Do not mark M9 accepted until these are recorded.
+- Prior D-020 placed a portal and team rewards in M9. The later M9 brief scopes this PR to XP, cosmetics, difficulty, and encounter variation. Confirm with the owner whether D-020 moves to a later milestone; this branch does not change the existing extraction flow.
 
 ## M8B acceptance and merge decision
 

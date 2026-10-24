@@ -1,5 +1,6 @@
 using ArcadeShooter.Combat;
 using ArcadeShooter.Player;
+using ArcadeShooter.Progression;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -23,6 +24,11 @@ namespace ArcadeShooter.Networking
         private MaterialPropertyBlock remoteColor;
         private float shotFlashEndsAt;
         private bool inMatch;
+        private readonly NetworkVariable<RifleFinish> selectedFinish = new NetworkVariable<RifleFinish>(
+            RifleFinish.Standard, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private Renderer[] rifleRenderers;
+        private Renderer[] localRifleRenderers;
+        private MaterialPropertyBlock finishProperties;
 
         public bool InMatch => inMatch;
 
@@ -38,6 +44,10 @@ namespace ArcadeShooter.Networking
             localCanvases = GetComponentsInChildren<Canvas>(true);
             if (remoteBody != null) remoteRenderer = remoteBody.GetComponentInChildren<Renderer>(true);
             if (remoteBody != null) remoteWeapon = remoteBody.GetComponentInChildren<RemoteWeaponPresentation>(true);
+            if (remoteWeapon != null) rifleRenderers = remoteWeapon.GetComponentsInChildren<Renderer>(true);
+            WeaponViewModel viewModel = GetComponentInChildren<WeaponViewModel>(true);
+            if (viewModel != null) localRifleRenderers = viewModel.GetComponentsInChildren<Renderer>(true);
+            finishProperties = new MaterialPropertyBlock();
             remoteColor = new MaterialPropertyBlock();
             SetControl(false);
             if (playerCamera != null) playerCamera.gameObject.SetActive(false);
@@ -54,11 +64,15 @@ namespace ArcadeShooter.Networking
             weaponSource.minDistance = 2f;
             weaponSource.maxDistance = 35f;
             GetComponent<PlayerHealth>().Died += OnDied;
+            selectedFinish.OnValueChanged += OnFinishChanged;
+            if (IsOwner) SendSelectedFinish();
+            ApplyFinish();
         }
 
         public override void OnNetworkDespawn()
         {
             GetComponent<PlayerHealth>().Died -= OnDied;
+            selectedFinish.OnValueChanged -= OnFinishChanged;
             SetControl(false);
         }
 
@@ -121,6 +135,50 @@ namespace ArcadeShooter.Networking
             remoteColor.SetColor("_BaseColor", new Color(1f, 0.75f, 0.12f));
             remoteRenderer.SetPropertyBlock(remoteColor);
             shotFlashEndsAt = Time.time + 0.1f;
+        }
+
+        [Rpc(SendTo.Owner, InvokePermission = RpcInvokePermission.Server)]
+        public void GrantResultRpc(string matchResultId, int earnedXp, bool extracted)
+        {
+            if (!IsOwner) return;
+            MultiplayerSessionController.Instance?.GrantLocalResult(matchResultId, earnedXp, extracted);
+        }
+
+        public void SendSelectedFinish()
+        {
+            if (!IsSpawned || !IsOwner) return;
+            RifleFinish finish = MultiplayerSessionController.Instance?.Profile?.Data.selectedFinish ?? RifleFinish.Standard;
+            SelectFinishRpc(finish);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        private void SelectFinishRpc(RifleFinish finish)
+        {
+            // This value is cosmetic. Local save unlocks are not a trusted online entitlement.
+            selectedFinish.Value = finish == RifleFinish.Teal ? RifleFinish.Teal : RifleFinish.Standard;
+        }
+
+        private void OnFinishChanged(RifleFinish previous, RifleFinish current) => ApplyFinish();
+        private void ApplyFinish()
+        {
+            ApplyFinishTo(rifleRenderers, selectedFinish.Value);
+            if (IsOwner) ApplyFinishTo(localRifleRenderers, selectedFinish.Value);
+        }
+
+        private void ApplyFinishTo(Renderer[] renderers, RifleFinish finish)
+        {
+            if (renderers == null) return;
+            foreach (Renderer renderer in renderers)
+            {
+                if (renderer == null) continue;
+                if (finish == RifleFinish.Teal)
+                {
+                    renderer.GetPropertyBlock(finishProperties);
+                    finishProperties.SetColor("_BaseColor", new Color(0.1f, 0.8f, 0.9f));
+                    renderer.SetPropertyBlock(finishProperties);
+                }
+                else renderer.SetPropertyBlock(null);
+            }
         }
 
         public void SetRemoteReload(bool value)
