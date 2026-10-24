@@ -1,6 +1,7 @@
 using ArcadeShooter.Combat;
 using ArcadeShooter.Player;
 using ArcadeShooter.Progression;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -26,11 +27,14 @@ namespace ArcadeShooter.Networking
         private bool inMatch;
         private readonly NetworkVariable<RifleFinish> selectedFinish = new NetworkVariable<RifleFinish>(
             RifleFinish.Standard, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<FixedString32Bytes> displayName = new NetworkVariable<FixedString32Bytes>(
+            "OPERATOR", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private Renderer[] rifleRenderers;
         private Renderer[] localRifleRenderers;
         private MaterialPropertyBlock finishProperties;
 
         public bool InMatch => inMatch;
+        public string DisplayName => displayName.Value.ToString();
 
         private void Awake()
         {
@@ -65,7 +69,11 @@ namespace ArcadeShooter.Networking
             weaponSource.maxDistance = 35f;
             GetComponent<PlayerHealth>().Died += OnDied;
             selectedFinish.OnValueChanged += OnFinishChanged;
-            if (IsOwner) SendSelectedFinish();
+            if (IsOwner)
+            {
+                SendSelectedFinish();
+                SetDisplayNameRpc(PlayerPrefs.GetString("ArcadeShooter.DisplayName", "OPERATOR"));
+            }
             ApplyFinish();
         }
 
@@ -149,6 +157,22 @@ namespace ArcadeShooter.Networking
             if (!IsSpawned || !IsOwner) return;
             RifleFinish finish = MultiplayerSessionController.Instance?.Profile?.Data.selectedFinish ?? RifleFinish.Standard;
             SelectFinishRpc(finish);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        private void SetDisplayNameRpc(string requested)
+        {
+            string trimmed = (requested ?? string.Empty).Trim();
+            var name = new System.Text.StringBuilder(16);
+            foreach (char character in trimmed)
+            {
+                if (name.Length == 16) break;
+                if (character >= 'A' && character <= 'Z' ||
+                    character >= 'a' && character <= 'z' ||
+                    character >= '0' && character <= '9' || character == ' ' || character == '_')
+                    name.Append(character);
+            }
+            displayName.Value = name.Length == 0 ? "OPERATOR" : name.ToString();
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
