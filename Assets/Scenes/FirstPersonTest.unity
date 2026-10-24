@@ -24403,6 +24403,12 @@ MonoBehaviour:
     delayBeforeWave: 0
   - enemyCount: 4
     delayBeforeWave: 3
+  alternateWaves:
+  - enemyCount: 3
+    delayBeforeWave: 0
+  - enemyCount: 3
+    delayBeforeWave: 3
+  alternateSpawnOffset: 1
   minimumPlayerDistance: 2
   navigationSampleRadius: 0.8
 --- !u!65 &1953524553

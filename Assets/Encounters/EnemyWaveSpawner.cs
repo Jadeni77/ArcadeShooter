@@ -20,23 +20,29 @@ namespace ArcadeShooter.Encounters
         [SerializeField] private GameObject enemyPrefab;
         [SerializeField] private Transform[] spawnPoints = Array.Empty<Transform>();
         [SerializeField] private Wave[] waves = Array.Empty<Wave>();
+        [SerializeField] private Wave[] alternateWaves = Array.Empty<Wave>();
+        [SerializeField, Min(0)] private int alternateSpawnOffset = 1;
         [SerializeField, Min(0.5f)] private float minimumPlayerDistance = 2f;
         [SerializeField, Min(0.1f)] private float navigationSampleRadius = 0.8f;
 
         private readonly HashSet<EnemyHealth> livingEnemies = new HashSet<EnemyHealth>();
         private int activeWave = -1;
 
-        public int WaveCount => waves?.Length ?? 0;
+        private Wave[] ActiveWaves => MissionController.Instance != null &&
+            MissionController.Instance.EncounterVariant == 1 && alternateWaves != null && alternateWaves.Length > 0
+                ? alternateWaves : waves;
+        public int WaveCount => ActiveWaves?.Length ?? 0;
         public int RemainingEnemies => livingEnemies.Count;
         public event Action<int> RemainingChanged;
         public event Action WaveCompleted;
 
-        public float DelayBeforeWave(int index) => waves[index].delayBeforeWave;
+        public float DelayBeforeWave(int index) => ActiveWaves[index].delayBeforeWave;
 
         // Configuration problems cannot fix themselves, so they are reported once and not retried.
         public bool IsWaveConfigured(int index)
         {
-            bool valid = index >= 0 && index < WaveCount && waves[index] != null && waves[index].enemyCount >= 1 &&
+            Wave[] active = ActiveWaves;
+            bool valid = index >= 0 && index < WaveCount && active[index] != null && active[index].enemyCount >= 1 &&
                          enemyPrefab != null && !enemyPrefab.scene.IsValid() &&
                          enemyPrefab.GetComponent<NetworkObject>() != null &&
                          enemyPrefab.GetComponent<EnemyHealth>() != null &&
@@ -52,13 +58,15 @@ namespace ArcadeShooter.Encounters
         {
             if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsServer ||
                 (MissionController.Instance != null && !MissionController.Instance.IsRunning) ||
-                activeWave >= 0 || index < 0 || index >= WaveCount || waves[index] == null ||
+                activeWave >= 0 || index < 0 || index >= WaveCount || ActiveWaves[index] == null ||
                 enemyPrefab == null || spawnPoints == null) return false;
 
-            int count = waves[index].enemyCount;
-            int firstPoint = 0;
+            Wave[] active = ActiveWaves;
+            int count = active[index].enemyCount;
+            int firstPoint = MissionController.Instance != null && MissionController.Instance.EncounterVariant == 1
+                ? alternateSpawnOffset : 0;
             for (int previous = 0; previous < index; previous++)
-                if (waves[previous] != null) firstPoint += Mathf.Max(0, waves[previous].enemyCount);
+                if (active[previous] != null) firstPoint += Mathf.Max(0, active[previous].enemyCount);
             var markers = new List<Vector3>(spawnPoints.Length);
             foreach (Transform point in spawnPoints)
                 if (point != null) markers.Add(point.position);
