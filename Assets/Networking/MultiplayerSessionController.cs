@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ArcadeShooter.Missions;
+using ArcadeShooter.Progression;
 using TMPro;
 using Unity.Netcode;
 using Unity.Services.Authentication;
@@ -33,6 +34,7 @@ namespace ArcadeShooter.Networking
         [SerializeField] private Button lobbyLeaveButton;
         [SerializeField] private Button gameplayLeaveButton;
         [SerializeField] private Camera menuCamera;
+        [SerializeField] private ProgressionRules progressionRules = new ProgressionRules();
 
         private NetworkManager network;
         private NetworkSceneManager registeredScenes;
@@ -41,11 +43,26 @@ namespace ArcadeShooter.Networking
         private bool leaving;
         private bool matchStarted;
         private bool returningToMenu;
+        private bool difficultySaved = true;
         private string status = "Host a game or enter a join code.";
         private float nextRefresh;
         private static string menuReturnStatus;
         private const string GameplayScene = "FirstPersonTest";
         private const string MenuScene = "MainMenu";
+        private const string DifficultyProperty = "difficulty";
+        private TMP_Text progressionText;
+        private Button finishButton;
+        private Button titleButton;
+        private Button difficultyButton;
+        public LocalProfile Profile { get; private set; }
+        public ProgressionRules ProgressionRules => progressionRules ??= new ProgressionRules();
+        public int LastEarnedXp { get; private set; }
+        public int LastOldLevel { get; private set; }
+        public int LastNewLevel { get; private set; }
+        public bool HasLocalReward { get; private set; }
+        public MissionDifficulty SelectedDifficulty => session != null &&
+            session.Properties.TryGetValue(DifficultyProperty, out SessionProperty property) &&
+            property.Value == "Hard" ? MissionDifficulty.Hard : MissionDifficulty.Normal;
         // Explains the cursor without prompting players to leave; Leave Game stays in the corner.
         private const string MatchStatus = "Press Esc to release the cursor; click the map to aim again.";
         // Prefixes every reason the host gives when it removes a client, so that client can tell
@@ -69,6 +86,7 @@ namespace ArcadeShooter.Networking
                 return;
             }
             Instance = this;
+            Profile = new LocalProfile(Application.persistentDataPath, ProgressionRules);
             DontDestroyOnLoad(gameObject);
             network = GetComponent<NetworkManager>();
             network.ConnectionApprovalCallback = ApproveConnection;
@@ -78,6 +96,7 @@ namespace ArcadeShooter.Networking
             startButton.onClick.AddListener(() => _ = LoadSessionSceneAsync(GameplayScene));
             lobbyLeaveButton.onClick.AddListener(LeaveGame);
             gameplayLeaveButton.onClick.AddListener(LeaveGame);
+            BuildProgressionUi();
             SceneManager.sceneLoaded += OnSceneLoaded;
             if (!string.IsNullOrEmpty(menuReturnStatus))
             {
@@ -123,6 +142,81 @@ namespace ArcadeShooter.Networking
 
         public void LeaveGame() => _ = LeaveAsync();
 
+        public void GrantLocalResult(string resultId, int earnedXp, bool extracted)
+        {
+            if (Profile == null || !Profile.Claim(resultId, earnedXp, extracted, out int before, out int after)) return;
+            LastEarnedXp = earnedXp;
+            LastOldLevel = before;
+            LastNewLevel = after;
+            HasLocalReward = true;
+            Refresh();
+        }
+
+        private async Task SetDifficultyAsync()
+        {
+            if (!CanManageMission || matchStarted) return;
+            busy = true;
+            MissionDifficulty previous = SelectedDifficulty;
+            try
+            {
+                IHostSession host = session.AsHost();
+                host.SetProperty(DifficultyProperty, new SessionProperty(
+                    previous == MissionDifficulty.Normal ? "Hard" : "Normal"));
+                await host.SavePropertiesAsync();
+                difficultySaved = true;
+            }
+            catch (Exception exception)
+            {
+                if (session != null && session.IsHost)
+                    try { session.AsHost().SetProperty(DifficultyProperty, new SessionProperty(previous.ToString())); }
+                    catch (Exception rollbackException) { Debug.LogWarning("Difficulty rollback: " + rollbackException.Message); }
+                difficultySaved = false;
+                status = "Could not set difficulty: " + exception.Message;
+                Debug.LogWarning(exception);
+            }
+            finally { busy = false; Refresh(); }
+        }
+
+        private void BuildProgressionUi()
+        {
+            if (lobbyPanel == null || startButton == null) return;
+            GameObject labelObject = new GameObject("Player Progression", typeof(RectTransform), typeof(TextMeshProUGUI));
+            labelObject.transform.SetParent(lobbyPanel.transform, false);
+            progressionText = labelObject.GetComponent<TextMeshProUGUI>();
+            progressionText.font = playersText.font;
+            progressionText.fontSize = 23;
+            progressionText.alignment = TextAlignmentOptions.Center;
+            progressionText.color = new Color(0.72f, 0.9f, 0.92f);
+            progressionText.raycastTarget = false;
+            RectTransform labelRect = progressionText.rectTransform;
+            labelRect.anchorMin = labelRect.anchorMax = new Vector2(0.5f, 0.5f);
+            labelRect.anchoredPosition = new Vector2(590, 100);
+            labelRect.sizeDelta = new Vector2(580, 130);
+            finishButton = ProgressionButton("Rifle Finish", 590, 10, () =>
+            {
+                RifleFinish next = Profile.Data.selectedFinish == RifleFinish.Standard ? RifleFinish.Teal : RifleFinish.Standard;
+                if (Profile.SelectFinish(next)) Refresh();
+            });
+            titleButton = ProgressionButton("Player Title", 590, -75, () =>
+            {
+                PlayerTitle next = Profile.Data.selectedTitle == PlayerTitle.Recruit ? PlayerTitle.Pathfinder : PlayerTitle.Recruit;
+                if (Profile.SelectTitle(next)) Refresh();
+            });
+            difficultyButton = ProgressionButton("Difficulty", 590, -160, () => _ = SetDifficultyAsync());
+        }
+
+        private Button ProgressionButton(string name, float x, float y, UnityEngine.Events.UnityAction action)
+        {
+            Button button = Instantiate(startButton, lobbyPanel.transform);
+            button.name = name;
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(action);
+            RectTransform rect = button.GetComponent<RectTransform>();
+            rect.anchoredPosition = new Vector2(x, y);
+            rect.sizeDelta = new Vector2(450, 66);
+            return button;
+        }
+
         private async Task InitializeAsync()
         {
             if (UnityServices.State == ServicesInitializationState.Uninitialized)
@@ -144,9 +238,12 @@ namespace ArcadeShooter.Networking
             {
                 await InitializeAsync();
                 session = await MultiplayerService.Instance.CreateSessionAsync(
-                    new SessionOptions { MaxPlayers = 4, Name = "ArcadeShooter", IsPrivate = true }
+                    new SessionOptions { MaxPlayers = 4, Name = "ArcadeShooter", IsPrivate = true,
+                        SessionProperties = new Dictionary<string, SessionProperty>
+                        { [DifficultyProperty] = new SessionProperty("Normal") } }
                         .WithRelayNetwork());
                 SubscribeSession();
+                difficultySaved = true;
                 status = "Lobby ready. Share the join code.";
             }
             catch (Exception exception)
@@ -243,6 +340,7 @@ namespace ArcadeShooter.Networking
         {
             if (sceneName != GameplayScene && sceneName != MenuScene) return;
             busy = true;
+            if (sceneName == GameplayScene) HasLocalReward = false;
             matchStarted = true;
             status = sceneName == GameplayScene ? "Loading mission..." : "Returning to lobby...";
             Refresh();
@@ -278,6 +376,7 @@ namespace ArcadeShooter.Networking
                     if (MissionController.Instance == null)
                         throw new InvalidOperationException("The map has no mission controller.");
                     SpawnMissionPlayers(completed, timedOut);
+                    MissionController.Instance.ConfigureMission(SelectedDifficulty);
                     MissionController.Instance.BeginMission();
                 }
                 catch (Exception exception)
@@ -484,11 +583,26 @@ namespace ArcadeShooter.Networking
             if (hostButton != null) hostButton.interactable = !busy;
             if (joinButton != null) joinButton.interactable = !busy;
             if (startButton != null) startButton.gameObject.SetActive(session != null && session.IsHost);
-            if (startButton != null) startButton.interactable = CanManageMission && !matchStarted;
+            if (startButton != null) startButton.interactable = CanManageMission && !matchStarted && difficultySaved;
             if (joinCodeText != null) joinCodeText.text = session == null ? string.Empty : "JOIN CODE  " + session.Code;
             if (playersText != null && session != null)
                 playersText.text = "Players  " + session.PlayerCount + " / 4\n" +
                     string.Join("\n", session.Players.Select((player, index) => "Player " + (index + 1)));
+            if (progressionText != null && Profile != null)
+            {
+                int level = Profile.Level;
+                progressionText.text = $"LEVEL {level}   XP {Profile.XpIntoLevel:N0} / {Profile.XpForNextLevel:N0}   (total {Profile.Data.xp:N0})\n" +
+                    $"Teal finish: {(progressionRules.FinishUnlocked(level, RifleFinish.Teal) ? "UNLOCKED" : "LOCKED (level " + progressionRules.tealFinishLevel + ")")}   " +
+                    $"Pathfinder: {(progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder) ? "UNLOCKED" : "LOCKED (level " + progressionRules.pathfinderTitleLevel + ")")}" +
+                    (string.IsNullOrEmpty(Profile.LoadWarning) ? "" : "\n" + Profile.LoadWarning);
+                finishButton.GetComponentInChildren<TMP_Text>().text = "RIFLE FINISH: " + Profile.Data.selectedFinish;
+                titleButton.GetComponentInChildren<TMP_Text>().text = "TITLE: " + Profile.Data.selectedTitle;
+                difficultyButton.GetComponentInChildren<TMP_Text>().text = "DIFFICULTY: " + SelectedDifficulty;
+                finishButton.interactable = progressionRules.FinishUnlocked(level, RifleFinish.Teal);
+                titleButton.interactable = progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder);
+                difficultyButton.interactable = CanManageMission && !matchStarted;
+                difficultyButton.gameObject.SetActive(session != null && session.IsHost);
+            }
             if (statusText != null) statusText.text = gameplay && MissionController.Instance != null &&
                 MissionController.Instance.IsFinished && !busy ? "Mission ended. The host can replay or return everyone to the lobby." : status;
         }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using ArcadeShooter.Networking;
 using ArcadeShooter.Player;
+using ArcadeShooter.Progression;
 using Unity.Netcode;
 using UnityEngine;
 
@@ -24,8 +25,11 @@ namespace ArcadeShooter.Missions
         private readonly NetworkVariable<float> duration = new NetworkVariable<float>();
         private readonly NetworkVariable<MissionEndReason> endReason = new NetworkVariable<MissionEndReason>();
         private readonly NetworkVariable<int> failedObjective = new NetworkVariable<int>(-1);
+        private readonly NetworkVariable<MissionDifficulty> difficulty = new NetworkVariable<MissionDifficulty>();
+        private readonly NetworkVariable<int> encounterVariant = new NetworkVariable<int>();
         private readonly List<PlayerHealth> observedPlayers = new List<PlayerHealth>();
         private MissionScoreTracker scores;
+        private string resultId;
 
         public static MissionController Instance { get; private set; }
         public MissionState State => state.Value;
@@ -38,6 +42,8 @@ namespace ArcadeShooter.Missions
             ? Mathf.Max(0f, (float)(NetworkManager.ServerTime.Time - startedAt.Value)) : duration.Value;
         public ExtractionPoint Extraction => extraction;
         public MissionEndReason EndReason => endReason.Value;
+        public MissionDifficulty Difficulty => difficulty.Value;
+        public int EncounterVariant => encounterVariant.Value;
         public string FailedObjectiveLabel => GetObjectiveLabel(failedObjective.Value);
         public event Action Changed;
 
@@ -89,6 +95,15 @@ namespace ArcadeShooter.Missions
         public bool IsObjectiveComplete(int index) => MissionRules.IsComplete(completed.Value, index, objectives.Length);
         public bool IsObjectiveComplete(MissionObjective objective) => IsObjectiveComplete(Array.IndexOf(objectives, objective));
 
+        public void ConfigureMission(MissionDifficulty selectedDifficulty)
+        {
+            if (!IsServer || State != MissionState.Waiting) return;
+            difficulty.Value = selectedDifficulty == MissionDifficulty.Hard ? MissionDifficulty.Hard : MissionDifficulty.Normal;
+            encounterVariant.Value = UnityEngine.Random.Range(0, 2);
+            foreach (ArcadeShooter.Enemies.EnemyHealth enemy in FindObjectsByType<ArcadeShooter.Enemies.EnemyHealth>())
+                enemy.ApplyMissionDifficulty();
+        }
+
         public void BeginMission()
         {
             if (!IsServer || !IsSpawned || State != MissionState.Waiting) return;
@@ -99,6 +114,7 @@ namespace ArcadeShooter.Missions
             }
             var players = ConnectedPlayers().ToArray();
             if (players.Length == 0) return;
+            resultId = Guid.NewGuid().ToString("N");
             completed.Value = 0;
             duration.Value = 0;
             startedAt.Value = NetworkManager.ServerTime.Time;
@@ -182,6 +198,17 @@ namespace ArcadeShooter.Missions
             // Publish the immutable score snapshot before publishing the terminal state.
             scores.FinalizeResults(success, duration.Value, CompletedObjectives, survivors);
             state.Value = success ? MissionState.Success : MissionState.Failure;
+            ProgressionRules rules = MultiplayerSessionController.Instance != null
+                ? MultiplayerSessionController.Instance.ProgressionRules : new ProgressionRules();
+            foreach (NetworkPlayer player in ConnectedPlayers())
+            {
+                bool extracted = success && !player.GetComponent<PlayerHealth>().IsDead;
+                int personalScore = 0;
+                for (int i = 0; i < scores.Stats.Count; i++)
+                    if (scores.Stats[i].ClientId == player.OwnerClientId)
+                    { personalScore = scores.Stats[i].Score; break; }
+                player.GrantResultRpc(resultId, rules.Reward(personalScore, extracted, Difficulty), extracted);
+            }
         }
 
         private void OnStateChanged(MissionState previous, MissionState current)

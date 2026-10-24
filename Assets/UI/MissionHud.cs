@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using ArcadeShooter.Missions;
 using ArcadeShooter.Networking;
+using ArcadeShooter.Progression;
 using TMPro;
 using Unity.Netcode;
 using UnityEngine;
@@ -35,6 +36,7 @@ namespace ArcadeShooter.UI
         private TextMeshProUGUI scoreValue;
         private TextMeshProUGUI rankValue;
         private TextMeshProUGUI scoreBreakdown;
+        private TextMeshProUGUI progressionResult;
         private TextMeshProUGUI resultStatus;
         private readonly GameObject[] playerRows = new GameObject[4];
         private readonly TextMeshProUGUI[,] playerCells = new TextMeshProUGUI[4, 7];
@@ -134,7 +136,7 @@ namespace ArcadeShooter.UI
             bool succeeded = mission.State == MissionState.Success;
             resultTitle.text = succeeded ? "MISSION SUCCESS" : "MISSION FAILED";
             resultTitle.color = succeeded ? SuccessColor : FailureColor;
-            resultMission.text = mission.MissionName;
+            resultMission.text = mission.MissionName + "   •   " + mission.Difficulty;
             bool ready = score != null && score.ResultsReady;
             MissionScoreBreakdown breakdown = ready ? score.Breakdown : default;
             resultReason.text = !ready ? string.Empty : DescribeOutcome(mission, breakdown);
@@ -142,6 +144,25 @@ namespace ArcadeShooter.UI
             scoreValue.text = ready ? score.TeamScore.ToString("N0") : "--";
             rankValue.text = ready ? score.Rank.ToString() : "--";
             scoreBreakdown.text = ready ? DescribeScore(breakdown, succeeded) : string.Empty;
+            MultiplayerSessionController localSession = MultiplayerSessionController.Instance;
+            LocalProfile profile = localSession?.Profile;
+            if (profile != null && !string.IsNullOrEmpty(profile.LoadWarning))
+                progressionResult.text = "XP could not be saved: " + profile.LoadWarning;
+            else if (profile == null || !localSession.HasLocalReward)
+                progressionResult.text = "Waiting for your XP reward...";
+            else
+            {
+                string unlocks = string.Empty;
+                ProgressionRules rules = localSession.ProgressionRules;
+                if (localSession.LastOldLevel < rules.tealFinishLevel &&
+                    localSession.LastNewLevel >= rules.tealFinishLevel) unlocks += "   NEW: Teal rifle finish";
+                if (localSession.LastOldLevel < rules.pathfinderTitleLevel &&
+                    localSession.LastNewLevel >= rules.pathfinderTitleLevel) unlocks += "   NEW: Pathfinder title";
+                string levelUp = localSession.LastNewLevel > localSession.LastOldLevel
+                    ? $"   LEVEL UP {localSession.LastOldLevel} → {localSession.LastNewLevel}" : "";
+                progressionResult.text = $"+{localSession.LastEarnedXp:N0} XP   Level {profile.Level}   " +
+                    $"{profile.XpIntoLevel:N0} / {profile.XpForNextLevel:N0} XP{levelUp}{unlocks}";
+            }
 
             if (ready) score.CopyStats(statsCopy);
             else statsCopy.Clear();
@@ -263,8 +284,8 @@ namespace ArcadeShooter.UI
             GameObject content = new GameObject("Results Content", typeof(RectTransform));
             content.transform.SetParent(resultsPanel.transform, false);
             RectTransform contentRect = content.GetComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0.07f, 0.08f);
-            contentRect.anchorMax = new Vector2(0.93f, 0.92f);
+            contentRect.anchorMin = new Vector2(0.07f, 0.04f);
+            contentRect.anchorMax = new Vector2(0.93f, 0.96f);
             contentRect.offsetMin = contentRect.offsetMax = Vector2.zero;
             Vertical(content, 12, new RectOffset()).childAlignment = TextAnchor.MiddleCenter;
 
@@ -287,6 +308,9 @@ namespace ArcadeShooter.UI
             scoreBreakdown = Label("Score Breakdown", content.transform, 22, TextAlignmentOptions.Center);
             scoreBreakdown.color = MutedColor;
             Height(scoreBreakdown.gameObject, 34);
+            progressionResult = Label("XP and Unlocks", content.transform, 23, TextAlignmentOptions.Center);
+            progressionResult.color = SuccessColor;
+            Height(progressionResult.gameObject, 68);
 
             GameObject header = TableRow("Statistics Header", content.transform, 42, new Color(0.08f, 0.18f, 0.23f));
             for (int column = 0; column < Columns.Length; column++)
@@ -297,12 +321,12 @@ namespace ArcadeShooter.UI
             }
             for (int row = 0; row < playerRows.Length; row++)
             {
-                playerRows[row] = TableRow("Player Statistics " + (row + 1), content.transform, 54,
+                playerRows[row] = TableRow("Player Statistics " + (row + 1), content.transform, 46,
                     row % 2 == 0 ? new Color(0.06f, 0.11f, 0.15f) : new Color(0.045f, 0.085f, 0.12f));
                 for (int column = 0; column < Columns.Length; column++)
                     playerCells[row, column] = TableCell(playerRows[row].transform, column, 27);
             }
-            teamRow = TableRow("Team Statistics", content.transform, 54, new Color(0.08f, 0.2f, 0.24f));
+            teamRow = TableRow("Team Statistics", content.transform, 46, new Color(0.08f, 0.2f, 0.24f));
             for (int column = 0; column < Columns.Length; column++)
             {
                 teamCells[column] = TableCell(teamRow.transform, column, 27);
