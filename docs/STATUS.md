@@ -1,6 +1,14 @@
 # Project status
 
-Last reviewed: 2026-10-24 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-10-25 (America/New_York). Inspect `git status` and the project before each task.
+
+## M10 Stage D — operator armory and profile (review branch)
+
+- The owner accepted the MainMenu direction and approved the free Quaternius Sci-Fi Essentials Kit rifle visual on 2026-10-25. Stage D is isolated on `feature/m10-loadout-profile`, layered over the Stage B menu/lobby branch; the owner's dirty checkout remains untouched.
+- `MainMenu` now presents the existing local profile as a service record with live callsign, rank, XP, completed/failed missions, unlocks, and the existing Back control. The lobby loadout overlay is a cinematic armory with AR-01 stats read from `AutomaticRifle`, existing finish/title/difficulty buttons, and a textured rifle reference. Standard and teal preview images switch with the selected local finish. The rifle model is used for this menu visual only; the gameplay weapon prefab, stats, firing, movement, and networking logic are unchanged.
+- The selected `Gun_Rifle.fbx` and its two needed textures come from the creator's Standard free CC0 archive. Source, license copy, checksums, and approval are recorded in [ASSET_LICENSES.md](ASSET_LICENSES.md). No paid source kit was used.
+- Unity 6000.6.5f1 compiled and rendered representative Edit-mode screenshots at 1600×900 and 2560×1600. The local profile page was checked in GUI Play mode with live saved data; the stage's finish-aware preview binding was compiled and serialized but needs an interactive finish-toggle check. The final EditMode run passed 44/45; the sole failure is the previously recorded M8B audio mixer parameter test in batch mode. See [Stage D review](M10_STAGE_D_REVIEW.md).
+- Stage D is ready for visual review. Stage E/F, two-client lobby validation, and final M10 acceptance remain open.
 
 ## M10 Stage B — cinematic main menu and multiplayer lobby (review branch)
 

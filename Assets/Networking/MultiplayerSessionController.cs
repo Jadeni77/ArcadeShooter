@@ -705,9 +705,11 @@ namespace ArcadeShooter.Networking
                     $"Teal finish: {(progressionRules.FinishUnlocked(level, RifleFinish.Teal) ? "UNLOCKED" : "LOCKED (level " + progressionRules.tealFinishLevel + ")")}   " +
                     $"Pathfinder: {(progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder) ? "UNLOCKED" : "LOCKED (level " + progressionRules.pathfinderTitleLevel + ")")}" +
                     (string.IsNullOrEmpty(Profile.LoadWarning) ? "" : "\n" + Profile.LoadWarning);
-                finishButton.GetComponentInChildren<TMP_Text>(true).text = "RIFLE FINISH: " + Profile.Data.selectedFinish;
-                titleButton.GetComponentInChildren<TMP_Text>(true).text = "TITLE: " + Profile.Data.selectedTitle;
-                difficultyButton.GetComponentInChildren<TMP_Text>(true).text = "DIFFICULTY: " + SelectedDifficulty;
+                finishButton.GetComponentInChildren<TMP_Text>(true).text =
+                    progressionRules.FinishUnlocked(level, RifleFinish.Teal) ? "CHANGE RIFLE FINISH  ›" : "TEAL FINISH  /  LEVEL " + progressionRules.tealFinishLevel;
+                titleButton.GetComponentInChildren<TMP_Text>(true).text =
+                    progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder) ? "CHANGE CALLSIGN TITLE  ›" : "PATHFINDER  /  LEVEL " + progressionRules.pathfinderTitleLevel;
+                difficultyButton.GetComponentInChildren<TMP_Text>(true).text = "MISSION DIFFICULTY  /  " + SelectedDifficulty.ToString().ToUpperInvariant();
                 finishButton.interactable = progressionRules.FinishUnlocked(level, RifleFinish.Teal);
                 titleButton.interactable = progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder);
                 difficultyButton.interactable = CanManageMission && !matchStarted;
