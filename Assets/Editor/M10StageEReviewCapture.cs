@@ -67,7 +67,37 @@ namespace ArcadeShooter.Editor
                     camera, Path.Combine(directory, "results-1280x720.png"), 1280, 720);
                 CaptureCanvases(new[] { missionCanvas.GetComponent<Canvas>(), pauseCanvas.GetComponent<Canvas>() },
                     camera, Path.Combine(directory, "results-2560x1600.png"), 2560, 1600);
+                TMP_Text outcome = results.Find("Results Content/Outcome").GetComponent<TMP_Text>();
+                outcome.text = "OPERATION FAILED";
+                outcome.color = new Color(1f, 0.52f, 0.48f);
+                Set(results, "Results Content/Outcome Reason", "No living players remain in the mission.");
+                Set(results, "Results Content/Team Summary/DURATION/Value", "05:12");
+                Set(results, "Results Content/Team Summary/TEAM SCORE/Value", "1,740");
+                Set(results, "Results Content/Team Summary/MISSION RANK/Value", "C");
+                Set(results, "Results Content/Score Breakdown",
+                    "Combat 1,240   +   Objectives 500   /   No extraction bonuses");
+                Set(results, "Results Content/XP and Unlocks", "+120 XP   /   COMBAT EFFORT");
+                int[] failureScores = { 500, 450, 420, 370 };
+                for (int i = 0; i < failureScores.Length; i++)
+                    Set(results.Find("Results Content/Player Statistics " + (i + 1)),
+                        "SCORE", failureScores[i].ToString("N0"));
+                Set(team, "OBJECTIVES", "1 / 3");
+                Set(team, "SCORE", "1,740");
+                CaptureCanvases(new[] { missionCanvas.GetComponent<Canvas>(), pauseCanvas.GetComponent<Canvas>() },
+                    camera, Path.Combine(directory, "results-failure-1600x900.png"), 1600, 900);
                 results.gameObject.SetActive(false);
+                missionCanvas.Find("Mission Objectives").gameObject.SetActive(true);
+                missionCanvas.Find("Extraction Tracker").gameObject.SetActive(true);
+                Set(missionCanvas, "Mission Objectives/Mission Name", "CONTAINMENT BREACH");
+                Set(missionCanvas, "Mission Objectives/Mission Progress", "OBJECTIVES 3 / 3    04:22");
+                Set(missionCanvas, "Mission Objectives/Objective List",
+                    "[DONE] Clear Danger Zone A\n[DONE] Clear Danger Zone B\n[DONE] Collect the research sample");
+                Set(missionCanvas, "Extraction Tracker/Extraction Status",
+                    "EXTRACTING  07s    /    3 OF 4 LIVING OPERATORS INSIDE");
+                CaptureCanvases(new[] { missionCanvas.GetComponent<Canvas>(), pauseCanvas.GetComponent<Canvas>() },
+                    camera, Path.Combine(directory, "extraction-1600x900.png"), 1600, 900);
+                missionCanvas.Find("Mission Objectives").gameObject.SetActive(false);
+                missionCanvas.Find("Extraction Tracker").gameObject.SetActive(false);
                 overlay.gameObject.SetActive(true);
                 CaptureCanvases(new[] { missionCanvas.GetComponent<Canvas>(), pauseCanvas.GetComponent<Canvas>() },
                     camera, Path.Combine(directory, "pause-1600x900.png"), 1600, 900);

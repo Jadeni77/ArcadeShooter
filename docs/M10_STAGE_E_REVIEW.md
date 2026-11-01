@@ -9,11 +9,13 @@ The captures are rendered by Unity 6000.6.5f1 from the real runtime UI builders 
 | Screen | 1280×720 | 1600×900 | 2560×1600 |
 | --- | --- | --- | --- |
 | Mission results | [Screenshot](m10-stage-e-review/results-1280x720.png) | [Screenshot](m10-stage-e-review/results-1600x900.png) | [Screenshot](m10-stage-e-review/results-2560x1600.png) |
+| Mission failure | — | [Screenshot](m10-stage-e-review/results-failure-1600x900.png) | — |
+| Extraction tracker | — | [Screenshot](m10-stage-e-review/extraction-1600x900.png) | — |
 | In-match menu | [Screenshot](m10-stage-e-review/pause-1280x720.png) | [Screenshot](m10-stage-e-review/pause-1600x900.png) | — |
 | In-match settings | — | [Screenshot](m10-stage-e-review/settings-1600x900.png) | — |
 | Main-menu settings | — | [Screenshot](m10-stage-e-review/menu-settings-1600x900.png) | — |
 
-The results screen now uses a scene-backed cinematic report with a strong outcome heading, animated team score, rank color, XP progress, team breakdown, and four-player statistics. Replay and Return to Lobby retain the existing host-only session actions. The local pause overlay offers Resume, Settings, and a confirmed Leave Match action. It disables only the local player's movement, look, and weapon input; it never changes `Time.timeScale` or pauses the online mission. The cursor unlocks for interaction and relocks on a living player's resume.
+The results screen now uses a scene-backed cinematic report with a strong outcome heading, animated team score, rank color, XP progress, team breakdown, and four-player statistics. The score and XP animations start when their data arrives, including a late network receipt. Replay and Return to Lobby retain the existing host-only session actions. The local pause overlay offers Resume, Settings, and a confirmed Leave Match action. It disables only the local player's movement, look, and weapon input; it never changes `Time.timeScale` or pauses the online mission. The cursor unlocks for interaction and relocks on a living player's resume.
 
 Master, Music, and SFX use the existing mixer and local persistence. Mouse sensitivity, display mode, and supported resolution choices are local preferences shared by the main menu and in-match settings. The existing extraction roster and countdown still read host-replicated state in `MissionHud`; Stage C's combat HUD is a separate branch awaiting integration.
 

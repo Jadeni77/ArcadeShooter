@@ -40,6 +40,7 @@ namespace ArcadeShooter.UI
         private TextMeshProUGUI progressionResult;
         private UnityEngine.UI.Image xpProgress;
         private float resultsRevealAt = -1f;
+        private float xpRevealAt = -1f;
         private TextMeshProUGUI resultStatus;
         private readonly GameObject[] playerRows = new GameObject[4];
         private readonly TextMeshProUGUI[,] playerCells = new TextMeshProUGUI[4, 7];
@@ -98,11 +99,11 @@ namespace ArcadeShooter.UI
             if (!available) return;
             if (finished)
             {
-                if (resultsRevealAt < 0f) resultsRevealAt = Time.unscaledTime;
                 RefreshResults();
                 return;
             }
             resultsRevealAt = -1f;
+            xpRevealAt = -1f;
 
             missionTitle.text = mission.MissionName.ToUpperInvariant();
             missionStatus.text = mission.State == MissionState.Waiting
@@ -146,10 +147,11 @@ namespace ArcadeShooter.UI
             resultTitle.color = succeeded ? SuccessColor : FailureColor;
             resultMission.text = mission.MissionName + "   •   " + mission.Difficulty;
             bool ready = score != null && score.ResultsReady;
+            if (ready && resultsRevealAt < 0f) resultsRevealAt = Time.unscaledTime;
             MissionScoreBreakdown breakdown = ready ? score.Breakdown : default;
             resultReason.text = !ready ? string.Empty : DescribeOutcome(mission, breakdown);
             durationValue.text = ready ? FormatDuration(score.Duration) : "--:--";
-            float reveal = resultsRevealAt < 0f ? 1f :
+            float reveal = resultsRevealAt < 0f ? 0f :
                 Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.unscaledTime - resultsRevealAt) / 1.2f));
             scoreValue.text = ready ? Mathf.RoundToInt(score.TeamScore * reveal).ToString("N0") : "--";
             rankValue.text = ready ? score.Rank.ToString() : "--";
@@ -180,8 +182,12 @@ namespace ArcadeShooter.UI
                 progressionResult.text = $"+{localSession.LastEarnedXp:N0} XP   Level {profile.Level}   " +
                     $"{profile.XpIntoLevel:N0} / {profile.XpForNextLevel:N0} XP{levelUp}{unlocks}";
             }
-            xpProgress.fillAmount = profile == null || !localSession.HasLocalReward ? 0f :
-                Mathf.Clamp01((float)profile.XpIntoLevel / Mathf.Max(1, profile.XpForNextLevel)) * reveal;
+            bool hasReward = profile != null && localSession.HasLocalReward;
+            if (hasReward && xpRevealAt < 0f) xpRevealAt = Time.unscaledTime;
+            float xpReveal = xpRevealAt < 0f ? 0f :
+                Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.unscaledTime - xpRevealAt) / 1.0f));
+            xpProgress.fillAmount = hasReward ?
+                Mathf.Clamp01((float)profile.XpIntoLevel / Mathf.Max(1, profile.XpForNextLevel)) * xpReveal : 0f;
 
             if (ready) score.CopyStats(statsCopy);
             else statsCopy.Clear();

@@ -2,6 +2,12 @@
 
 Last reviewed: 2026-11-01 (America/New_York). Inspect `git status` and the project before each task.
 
+## M10 Stage F — integrated branch, acceptance checks open
+
+- `feature/m10-integration-polish` combines Stages A–E from the latest `develop` in an isolated checkout. Integration preserved both UI decisions as D-025 and D-026 and resolved overlapping status/roadmap notes. The owner's local edits remain untouched.
+- The combined Unity project compiled, rendered [extraction, success/failure results, pause, and settings](M10_STAGE_E_REVIEW.md), and built a macOS Development Player. The Player launched and showed the cinematic MainMenu. Full EditMode regression remains 44/45 because of the existing batch-mode M8B mixer parameter failure.
+- Live two-client UI, click/focus/cursor, display changes, actual before/after runtime captures, and a frame-time/Canvas rebuild measurement remain open. The computer-control layer could view the Player but could not deliver coordinate clicks to its Unity window. See [Stage F review](M10_STAGE_F_REVIEW.md). M10 acceptance is not complete.
+
 ## M10 Stage E — mission report and local pause/settings (review branch)
 
 - `feature/m10-results-pause-settings` builds on Stage D in an isolated worktree. The existing dirty owner checkout remains untouched. Results now present the replicated mission outcome, rank, team/player statistics, score breakdown, and local XP in a scene-backed report with score count-up and an XP progress bar.
