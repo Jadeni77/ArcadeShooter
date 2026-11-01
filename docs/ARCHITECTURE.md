@@ -1,5 +1,9 @@
 # Technical architecture
 
+## M10 UI direction, pending visual approval
+
+The runtime interface already uses uGUI Canvases and TextMesh Pro in the menu scene, player prefab, encounter scene, and runtime mission/results builder. M10 will keep that framework and introduce shared theme data, styled prefabs, and presentation components around existing session, profile, combat, encounter and mission state. The [UI inventory](ui-design/INVENTORY.md) records current data seams and missing lobby ready/name state; the [design system proposal](ui-design/DESIGN_SYSTEM.md) defines the visual direction and staged implementation. Stage A is design work only and does not change runtime authority or input behavior.
+
 ## M9 local progression and replayability
 
 `ProgressionRules` owns the level thresholds, XP formula, and unlock conditions. `LocalProfile` reads and atomically writes a versioned JSON profile under `Application.persistentDataPath`. It saves total XP, an unlock bit mask, selected finish/title, lifetime completion counts, and claimed result IDs. An unknown version or corrupt file stays untouched and blocks writes. The persistent `MultiplayerSessionController` owns the current machine's profile and lobby presentation; each client has its own profile.
