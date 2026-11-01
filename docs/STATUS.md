@@ -1,6 +1,12 @@
 # Project status
 
-Last reviewed: 2026-10-25 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-11-01 (America/New_York). Inspect `git status` and the project before each task.
+
+## M10 Stage E — mission report and local pause/settings (review branch)
+
+- `feature/m10-results-pause-settings` builds on Stage D in an isolated worktree. The existing dirty owner checkout remains untouched. Results now present the replicated mission outcome, rank, team/player statistics, score breakdown, and local XP in a scene-backed report with score count-up and an XP progress bar.
+- The in-match overlay offers Resume, settings, and a confirmed Leave Match action. Opening it suspends only local gameplay input and releases the cursor; the online mission continues. Menu and in-match settings share persisted mouse sensitivity and display preferences, while the existing mixer handles Master, Music, and SFX.
+- Unity 6000.6.5f1 compiled the source and rendered [Stage E review captures](M10_STAGE_E_REVIEW.md) at 1280×720, 1600×900, and 2560×1600. The full EditMode suite passed 44/45, with the same pre-existing M8B batch-mode mixer test failure. Interactive Relay, cursor/death/leave, Player display settings, and integrated Stage C checks remain open. Stage F and final M10 acceptance are not complete.
 
 ## M10 Stage D — operator armory and profile (review branch)
 

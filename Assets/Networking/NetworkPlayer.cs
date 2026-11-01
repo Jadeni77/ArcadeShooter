@@ -25,6 +25,7 @@ namespace ArcadeShooter.Networking
         private MaterialPropertyBlock remoteColor;
         private float shotFlashEndsAt;
         private bool inMatch;
+        private bool localMenuOpen;
         private readonly NetworkVariable<RifleFinish> selectedFinish = new NetworkVariable<RifleFinish>(
             RifleFinish.Standard, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private readonly NetworkVariable<FixedString32Bytes> displayName = new NetworkVariable<FixedString32Bytes>(
@@ -98,7 +99,7 @@ namespace ArcadeShooter.Networking
                 playerCamera.enabled = true;
             }
             if (listener != null) listener.enabled = true;
-            SetControl(!GetComponent<PlayerHealth>().IsDead);
+            SetControl(!GetComponent<PlayerHealth>().IsDead && !localMenuOpen);
             foreach (Canvas canvas in localCanvases) canvas.enabled = true;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -114,6 +115,7 @@ namespace ArcadeShooter.Networking
         public void EndMatch()
         {
             inMatch = false;
+            localMenuOpen = false;
             SetControl(false);
             if (remoteBody != null) remoteBody.SetActive(false);
             if (playerCamera != null) playerCamera.gameObject.SetActive(false);
@@ -126,6 +128,7 @@ namespace ArcadeShooter.Networking
         public void FreezeForResults()
         {
             inMatch = false;
+            localMenuOpen = false;
             SetControl(false);
             shotFlashEndsAt = 0f;
             remoteRenderer?.SetPropertyBlock(null);
@@ -134,6 +137,16 @@ namespace ArcadeShooter.Networking
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
+        }
+
+        public void SetLocalMenuOpen(bool open)
+        {
+            if (!IsOwner || !inMatch) return;
+            localMenuOpen = open;
+            bool canPlay = !open && !GetComponent<PlayerHealth>().IsDead;
+            SetControl(canPlay);
+            Cursor.lockState = canPlay ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !canPlay;
         }
 
         public void FlashRemoteShot()
