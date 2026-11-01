@@ -13,7 +13,7 @@ namespace ArcadeShooter.UI
     [DisallowMultipleComponent]
     public sealed class MissionHud : MonoBehaviour
     {
-        private static readonly Color PanelColor = new Color(0.035f, 0.065f, 0.095f, 0.94f);
+        private static readonly Color PanelColor = new Color(0.005f, 0.018f, 0.023f, 0.68f);
         private static readonly Color MutedColor = new Color(0.72f, 0.8f, 0.84f);
         private static readonly Color SuccessColor = new Color(0.43f, 0.95f, 0.76f);
         private static readonly Color FailureColor = new Color(1f, 0.52f, 0.48f);
@@ -23,6 +23,7 @@ namespace ArcadeShooter.UI
         private MissionController mission;
         private MissionScoreTracker score;
         private GameObject hudPanel;
+        private GameObject extractionPanel;
         private GameObject promptPanel;
         private GameObject resultsPanel;
         private TextMeshProUGUI missionTitle;
@@ -52,6 +53,7 @@ namespace ArcadeShooter.UI
         {
             BuildUi();
             hudPanel.SetActive(false);
+            extractionPanel.SetActive(false);
             promptPanel.SetActive(false);
             resultsPanel.SetActive(false);
         }
@@ -85,6 +87,7 @@ namespace ArcadeShooter.UI
             bool available = mission != null && mission.IsSpawned;
             bool finished = available && mission.IsFinished;
             hudPanel.SetActive(available && !finished);
+            extractionPanel.SetActive(available && !finished);
             resultsPanel.SetActive(finished);
             ResearchSample sample = ResearchSample.Instance;
             promptPanel.SetActive(available && mission.IsRunning && sample != null &&
@@ -96,7 +99,7 @@ namespace ArcadeShooter.UI
                 return;
             }
 
-            missionTitle.text = mission.MissionName;
+            missionTitle.text = mission.MissionName.ToUpperInvariant();
             missionStatus.text = mission.State == MissionState.Waiting
                 ? "WAITING FOR THE TEAM"
                 : $"OBJECTIVES {mission.CompletedObjectives} / {mission.ObjectiveCount}    {FormatDuration(mission.ElapsedSeconds)}";
@@ -249,24 +252,32 @@ namespace ArcadeShooter.UI
             scaler.referenceResolution = new Vector2(1920, 1080);
             scaler.matchWidthOrHeight = 0.5f;
 
-            // The existing encounter banner occupies the top-centre band; this card starts below it.
+            // Keep mission state at the screen edge and the centre of the view clear for aiming.
             hudPanel = Panel("Mission Objectives", canvasObject.transform, PanelColor, false);
             RectTransform hudRect = hudPanel.GetComponent<RectTransform>();
             hudRect.anchorMin = hudRect.anchorMax = hudRect.pivot = new Vector2(0, 1);
-            hudRect.anchoredPosition = new Vector2(32, -190);
-            hudRect.sizeDelta = new Vector2(520, 360);
-            UnityEngine.UI.VerticalLayoutGroup hudLayout = Vertical(hudPanel, 12, new RectOffset(22, 22, 18, 18));
+            hudRect.anchoredPosition = new Vector2(32, -32);
+            hudRect.sizeDelta = new Vector2(520, 245);
+            UnityEngine.UI.VerticalLayoutGroup hudLayout = Vertical(hudPanel, 6, new RectOffset(16, 16, 10, 10));
             hudLayout.childAlignment = TextAnchor.UpperLeft;
-            missionTitle = Label("Mission Name", hudPanel.transform, 29, TextAlignmentOptions.Left);
-            Height(missionTitle.gameObject, 38);
-            missionStatus = Label("Mission Progress", hudPanel.transform, 21, TextAlignmentOptions.Left);
+            missionTitle = Label("Mission Name", hudPanel.transform, 22, TextAlignmentOptions.Left);
+            missionTitle.fontStyle = FontStyles.Bold;
+            missionTitle.color = CombatHudVisuals.Cyan;
+            Height(missionTitle.gameObject, 32);
+            missionStatus = Label("Mission Progress", hudPanel.transform, 18, TextAlignmentOptions.Left);
             missionStatus.color = MutedColor;
-            Height(missionStatus.gameObject, 28);
-            objectives = Label("Objective List", hudPanel.transform, 25, TextAlignmentOptions.Left);
-            objectives.lineSpacing = 12;
-            Height(objectives.gameObject, 112);
-            extractionStatus = Label("Extraction Status", hudPanel.transform, 23, TextAlignmentOptions.Left);
-            Height(extractionStatus.gameObject, 90);
+            Height(missionStatus.gameObject, 25);
+            objectives = Label("Objective List", hudPanel.transform, 21, TextAlignmentOptions.Left);
+            objectives.lineSpacing = 7;
+            Height(objectives.gameObject, 136);
+            extractionPanel = Panel("Extraction Tracker", canvasObject.transform, PanelColor, false);
+            RectTransform extractionRect = extractionPanel.GetComponent<RectTransform>();
+            extractionRect.anchorMin = extractionRect.anchorMax = extractionRect.pivot = new Vector2(0.5f, 0);
+            extractionRect.anchoredPosition = new Vector2(0, 28);
+            extractionRect.sizeDelta = new Vector2(700, 84);
+            extractionStatus = Label("Extraction Status", extractionPanel.transform, 21, TextAlignmentOptions.Center);
+            extractionStatus.fontStyle = FontStyles.Bold;
+            Stretch(extractionStatus.rectTransform);
 
             promptPanel = Panel("Research Sample Prompt", canvasObject.transform, PanelColor, false);
             RectTransform promptRect = promptPanel.GetComponent<RectTransform>();

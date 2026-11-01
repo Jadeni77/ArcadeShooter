@@ -1,8 +1,11 @@
 # Technical architecture
 
-## M10 UI direction, pending visual approval
+## M10 UI direction and Stage C presentation
 
-The runtime interface already uses uGUI Canvases and TextMesh Pro in the menu scene, player prefab, encounter scene, and runtime mission/results builder. M10 will keep that framework and introduce shared theme data, styled prefabs, and presentation components around existing session, profile, combat, encounter and mission state. The [UI inventory](ui-design/INVENTORY.md) records current data seams and missing lobby ready/name state; the [design system proposal](ui-design/DESIGN_SYSTEM.md) defines the visual direction and staged implementation. Stage A is design work only and does not change runtime authority or input behavior.
+The runtime interface uses uGUI Canvases and TextMesh Pro in the menu scene, player prefab, encounter scene, and runtime mission/results builder. M10 keeps that framework and adds presentation components around existing session, profile, combat, encounter and mission state. The [UI inventory](ui-design/INVENTORY.md) records the original data seams, and the [design system](ui-design/DESIGN_SYSTEM.md) defines the approved visual direction. Stage A changed no runtime authority or input behavior.
+
+`WeaponHud`, `PlayerHealthHud`, `MissionHud`, and `EncounterHud` keep their existing data/event ownership and build a compact uGUI presentation at runtime. `TeammateHud` reads spawned `NetworkPlayer` and `PlayerHealth` data at a quarter-second interval while the owner Canvas is visible. It creates no authoritative health state. The player owner supplies a sanitized cosmetic display name to the server once on network spawn; a replicated `NetworkVariable<FixedString32Bytes>` makes it available to peer HUDs. The lobby name added in the independent Stage B branch uses the same local PlayerPrefs key, so the selected name is sent when the mission avatar spawns. Two-client synchronization still needs validation.
+
 
 ## M9 local progression and replayability
 
