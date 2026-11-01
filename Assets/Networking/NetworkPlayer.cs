@@ -1,6 +1,7 @@
 using ArcadeShooter.Combat;
 using ArcadeShooter.Player;
 using ArcadeShooter.Progression;
+using Unity.Collections;
 using Unity.Netcode;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -24,13 +25,17 @@ namespace ArcadeShooter.Networking
         private MaterialPropertyBlock remoteColor;
         private float shotFlashEndsAt;
         private bool inMatch;
+        private bool localMenuOpen;
         private readonly NetworkVariable<RifleFinish> selectedFinish = new NetworkVariable<RifleFinish>(
             RifleFinish.Standard, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+        private readonly NetworkVariable<FixedString32Bytes> displayName = new NetworkVariable<FixedString32Bytes>(
+            "OPERATOR", NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
         private Renderer[] rifleRenderers;
         private Renderer[] localRifleRenderers;
         private MaterialPropertyBlock finishProperties;
 
         public bool InMatch => inMatch;
+        public string DisplayName => displayName.Value.ToString();
 
         private void Awake()
         {
@@ -65,7 +70,11 @@ namespace ArcadeShooter.Networking
             weaponSource.maxDistance = 35f;
             GetComponent<PlayerHealth>().Died += OnDied;
             selectedFinish.OnValueChanged += OnFinishChanged;
-            if (IsOwner) SendSelectedFinish();
+            if (IsOwner)
+            {
+                SendSelectedFinish();
+                SetDisplayNameRpc(PlayerPrefs.GetString("ArcadeShooter.DisplayName", "OPERATOR"));
+            }
             ApplyFinish();
         }
 
@@ -90,7 +99,7 @@ namespace ArcadeShooter.Networking
                 playerCamera.enabled = true;
             }
             if (listener != null) listener.enabled = true;
-            SetControl(!GetComponent<PlayerHealth>().IsDead);
+            SetControl(!GetComponent<PlayerHealth>().IsDead && !localMenuOpen);
             foreach (Canvas canvas in localCanvases) canvas.enabled = true;
             Cursor.lockState = CursorLockMode.Locked;
             Cursor.visible = false;
@@ -106,6 +115,7 @@ namespace ArcadeShooter.Networking
         public void EndMatch()
         {
             inMatch = false;
+            localMenuOpen = false;
             SetControl(false);
             if (remoteBody != null) remoteBody.SetActive(false);
             if (playerCamera != null) playerCamera.gameObject.SetActive(false);
@@ -118,6 +128,7 @@ namespace ArcadeShooter.Networking
         public void FreezeForResults()
         {
             inMatch = false;
+            localMenuOpen = false;
             SetControl(false);
             shotFlashEndsAt = 0f;
             remoteRenderer?.SetPropertyBlock(null);
@@ -126,6 +137,16 @@ namespace ArcadeShooter.Networking
                 Cursor.lockState = CursorLockMode.None;
                 Cursor.visible = true;
             }
+        }
+
+        public void SetLocalMenuOpen(bool open)
+        {
+            if (!IsOwner || !inMatch) return;
+            localMenuOpen = open;
+            bool canPlay = !open && !GetComponent<PlayerHealth>().IsDead;
+            SetControl(canPlay);
+            Cursor.lockState = canPlay ? CursorLockMode.Locked : CursorLockMode.None;
+            Cursor.visible = !canPlay;
         }
 
         public void FlashRemoteShot()
@@ -149,6 +170,22 @@ namespace ArcadeShooter.Networking
             if (!IsSpawned || !IsOwner) return;
             RifleFinish finish = MultiplayerSessionController.Instance?.Profile?.Data.selectedFinish ?? RifleFinish.Standard;
             SelectFinishRpc(finish);
+        }
+
+        [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]
+        private void SetDisplayNameRpc(string requested)
+        {
+            string trimmed = (requested ?? string.Empty).Trim();
+            var name = new System.Text.StringBuilder(16);
+            foreach (char character in trimmed)
+            {
+                if (name.Length == 16) break;
+                if (character >= 'A' && character <= 'Z' ||
+                    character >= 'a' && character <= 'z' ||
+                    character >= '0' && character <= '9' || character == ' ' || character == '_')
+                    name.Append(character);
+            }
+            displayName.Value = name.Length == 0 ? "OPERATOR" : name.ToString();
         }
 
         [Rpc(SendTo.Server, InvokePermission = RpcInvokePermission.Owner)]

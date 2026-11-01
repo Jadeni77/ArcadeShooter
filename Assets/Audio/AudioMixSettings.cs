@@ -18,6 +18,9 @@ namespace ArcadeShooter.Audio
 
         private void Awake()
         {
+            master = PlayerPrefs.GetFloat("ArcadeShooter.Audio.Master", master);
+            music = PlayerPrefs.GetFloat("ArcadeShooter.Audio.Music", music);
+            sfx = PlayerPrefs.GetFloat("ArcadeShooter.Audio.Sfx", sfx);
             SetLevel(Bus.Master, master);
             SetLevel(Bus.Music, music);
             SetLevel(Bus.Sfx, sfx);

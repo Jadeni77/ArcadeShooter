@@ -1,15 +1,55 @@
 # Project status
 
-Last reviewed: 2026-10-24 (America/New_York). Inspect `git status` and the project before each task.
+Last reviewed: 2026-11-01 (America/New_York). Inspect `git status` and the project before each task.
 
-## M9 in progress — progression and replayability
+## M10 Stage F — integrated branch, acceptance checks open
 
-- On 2026-10-24, the owner instructed merging draft PR #13 into `develop`. That authorizes integration of the PR's scoped implementation; the manual validation below remains open and M9 is not yet marked accepted.
+- `feature/m10-integration-polish` combines Stages A–E from the latest `develop` in an isolated checkout. Integration preserved both UI decisions as D-025 and D-026 and resolved overlapping status/roadmap notes. The owner's local edits remain untouched.
+- The combined Unity project compiled, rendered [extraction, success/failure results, pause, and settings](M10_STAGE_E_REVIEW.md), and built a macOS Development Player. The Player launched and showed the cinematic MainMenu. Full EditMode regression remains 44/45 because of the existing batch-mode M8B mixer parameter failure.
+- Live two-client UI, click/focus/cursor, display changes, actual before/after runtime captures, and a frame-time/Canvas rebuild measurement remain open. The computer-control layer could view the Player but could not deliver coordinate clicks to its Unity window. See [Stage F review](M10_STAGE_F_REVIEW.md). M10 acceptance is not complete.
+
+## M10 Stage E — mission report and local pause/settings (review branch)
+
+- `feature/m10-results-pause-settings` builds on Stage D in an isolated worktree. The existing dirty owner checkout remains untouched. Results now present the replicated mission outcome, rank, team/player statistics, score breakdown, and local XP in a scene-backed report with score count-up and an XP progress bar.
+- The in-match overlay offers Resume, settings, and a confirmed Leave Match action. Opening it suspends only local gameplay input and releases the cursor; the online mission continues. Menu and in-match settings share persisted mouse sensitivity and display preferences, while the existing mixer handles Master, Music, and SFX.
+- Unity 6000.6.5f1 compiled the source and rendered [Stage E review captures](M10_STAGE_E_REVIEW.md) at 1280×720, 1600×900, and 2560×1600. The full EditMode suite passed 44/45, with the same pre-existing M8B batch-mode mixer test failure. Interactive Relay, cursor/death/leave, Player display settings, and integrated Stage C checks remain open. Stage F and final M10 acceptance are not complete.
+
+## M10 Stage D — operator armory and profile (review branch)
+
+- The owner accepted the MainMenu direction and approved the free Quaternius Sci-Fi Essentials Kit rifle visual on 2026-10-25. Stage D is isolated on `feature/m10-loadout-profile`, layered over the Stage B menu/lobby branch; the owner's dirty checkout remains untouched.
+- `MainMenu` now presents the existing local profile as a service record with live callsign, rank, XP, completed/failed missions, unlocks, and the existing Back control. The lobby loadout overlay is a cinematic armory with AR-01 stats read from `AutomaticRifle`, existing finish/title/difficulty buttons, and a textured rifle reference. Standard and teal preview images switch with the selected local finish. The rifle model is used for this menu visual only; the gameplay weapon prefab, stats, firing, movement, and networking logic are unchanged.
+- The selected `Gun_Rifle.fbx` and its two needed textures come from the creator's Standard free CC0 archive. Source, license copy, checksums, and approval are recorded in [ASSET_LICENSES.md](ASSET_LICENSES.md). No paid source kit was used.
+- Unity 6000.6.5f1 compiled and rendered representative Edit-mode screenshots at 1600×900 and 2560×1600. The local profile page was checked in GUI Play mode with live saved data; the stage's finish-aware preview binding was compiled and serialized but needs an interactive finish-toggle check. The final EditMode run passed 44/45; the sole failure is the previously recorded M8B audio mixer parameter test in batch mode. See [Stage D review](M10_STAGE_D_REVIEW.md).
+- Stage D is ready for visual review. Stage E/F, two-client lobby validation, and final M10 acceptance remain open.
+
+## M10 Stage B — cinematic main menu and multiplayer lobby (review branch)
+
+- The owner accepted the revised cinematic visual direction after reviewing Stage A concepts in [draft PR #14](https://github.com/Jadeni77/ArcadeShooter/pull/14). This branch starts at the M9 merge on `develop` (`d03d873`) in a separate worktree; the owner's dirty checkout is untouched.
+- The existing `MainMenu` scene now has an original facility backdrop, full-screen navigation, profile and audio pages, and a squad-staging lobby with four operator lanes. The existing Host, Join, Start, Leave, cosmetic, and difficulty controls remain wired to their existing systems. New session player properties carry display name, selected finish/title, and ready state. The host's first mission launch requires every connected player to be ready. Audio sliders persist local mixer levels.
+- The scene uses existing uGUI and TextMesh Pro, with shared cyan/amber/night colors and common button states. The Stage A design system remains in PR #14; see [Stage B review](M10_STAGE_B_REVIEW.md) for the implemented scope and screenshot limits. The two backdrops are original generated art, not screenshots or third-party game assets.
+- Unity 6000.6.5f1 compiled the scene and rendered Edit-mode captures at 1280×720, 1600×900, and 2560×1600 without a new C# error. The full EditMode suite passed 44 of 45 tests; the sole failure is the previously recorded M8B audio mixer parameter test under batch mode. These captures verify layout and visual hierarchy, not Play-mode button behavior or online synchronization. A two-client macOS run, runtime focus/cursor checks, and subjective typography approval remain open. This worktree has no Unity cloud link, so Relay host/join cannot be claimed here.
+- Stage C–F UI work and final M10 acceptance are still open. Do not call this Stage B branch the completed M10 milestone.
+
+## M10 Stage A — advanced UI/UX visual direction (design review)
+
+- [M9 PR #13](https://github.com/Jadeni77/ArcadeShooter/pull/13) merged into `develop` on 2026-10-24; `feature/advanced-ui-ux` starts from that merge (`d03d873`) in a separate worktree. The older checkout's uncommitted Unity changes remain untouched. M9's manual acceptance gaps below remain open.
+- A [source/scene UI inventory](ui-design/INVENTORY.md) and [cinematic design proposal](ui-design/DESIGN_SYSTEM.md) cover the Main Menu, Lobby, combat/mission HUD, results, profile/loadout, and pause/settings. The owner found the original flat mockups too website-like and supplied game UI references. Six new 1600 × 900 review renders use original facility, squad, combat and extraction concept art with restrained game overlays. The Figma file retains the first pass in an archive page and has editable cinematic Menu/Lobby frames; further Figma edits hit the Starter call limit. These are concepts, not Game-view captures or Unity assets.
+- Stage A changes no Unity gameplay, networking, scene, prefab, package, or third-party creative asset. The visual direction requires owner review before implementation. Existing UI remains the prototype; compilation, before/after Unity screenshots, responsive layout, two-client behavior, and performance remain for Stages B–F.
+
+## M9 merged — progression and replayability (manual acceptance open)
+
+- On 2026-10-24, the owner instructed merging PR #13 into `develop`; GitHub reports it merged at 20:02 UTC. The manual validation below remains open and M9 is not yet marked accepted.
 - M8B merged into `develop` as [PR #12](https://github.com/Jadeni77/ArcadeShooter/pull/12) on 2026-10-21. The M9 feature branch starts at that merge (`a07cb80`) in `/private/tmp/ArcadeShooter-M9`. The owner's older, dirty checkout was left untouched.
 - The branch adds versioned local XP profiles, a configurable level curve, level 2 teal rifle finish, level 3 Pathfinder title, host-issued per-player XP receipts with a per-match duplicate gate, Normal/Hard session selection, 25% Hard enemy health and completion XP bonuses, and two six-enemy Zone B wave layouts. The results screen shows personal XP, levels, unlocks, and difficulty; the lobby shows progression, locked/unlocked items, selection, and difficulty. See [rules and manual checklist](PROGRESSION_TESTING.md).
 - No new third-party asset was imported. The finish recolors the project-made rifle meshes; audiovisual placeholders remain future polish work.
 - Unity 6000.6.5f1 compiled with no new C# errors. The final focused EditMode run passed all 5 M9 progression/scene tests. The full EditMode run passed 44 of 45 tests. The only failure was the existing `M8BAudioIntegrationTests.MixerContainsRoutedBusesWithCallableVolumeParameters`: in batch mode `MusicVolume` read back 0 dB instead of −12.04 dB, both with and without `-nographics`. Existing `EnvironmentVisualsSceneSetup` API deprecation warnings remain. Two-player macOS, restart, replay, cosmetics, and full gameplay regression checks have not been performed on this branch; this worktree has no Unity cloud project link. Do not mark M9 accepted until these are recorded.
 - Prior D-020 placed a portal and team rewards in M9. The later M9 brief scopes this PR to XP, cosmetics, difficulty, and encounter variation. Confirm with the owner whether D-020 moves to a later milestone; this branch does not change the existing extraction flow.
+
+## M10 Stage C — combat HUD and danger-zone presentation (review branch)
+
+- This independent branch starts from `develop` at the M9 merge (`d03d873`) and follows the owner's revised cinematic M10 concepts in draft PR #14. It keeps the existing HUD, mission, and encounter components and their event sources. Stage B menu/lobby is in draft PR #15.
+- The combat HUD now uses compact edge readouts for health, ammunition, objective progress, squad health, extraction, and wave state. Warning/clear/failed notices use a brief fade-in. A cosmetic replicated player name lets each peer label its teammate-health rows; health and encounter data still come from their existing NetworkVariables and events. No player movement, aiming, damage, mission, or encounter authority changed.
+- Unity 6000.6.5f1 compiled with no new C# errors. A direct Editor rendering of the modified UI over `FirstPersonTest` is in [Stage C review](M10_STAGE_C_REVIEW.md); its labels are representative because no session was running. The full EditMode suite passed 44/45, with the previously recorded M8B batch-mode mixer assertion as the only failure. Live two-client readability, synchronized names/health, warning timing, UI performance, and 16:10 Game-view layout remain untested on this isolated worktree.
 
 ## M8B acceptance and merge decision
 

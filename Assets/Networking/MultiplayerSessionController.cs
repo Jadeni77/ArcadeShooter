@@ -34,6 +34,7 @@ namespace ArcadeShooter.Networking
         [SerializeField] private Button lobbyLeaveButton;
         [SerializeField] private Button gameplayLeaveButton;
         [SerializeField] private Camera menuCamera;
+        [SerializeField] private RectTransform lobbyExtrasRoot;
         [SerializeField] private ProgressionRules progressionRules = new ProgressionRules();
 
         private NetworkManager network;
@@ -44,12 +45,18 @@ namespace ArcadeShooter.Networking
         private bool matchStarted;
         private bool returningToMenu;
         private bool difficultySaved = true;
+        private bool readySaving;
         private string status = "Host a game or enter a join code.";
         private float nextRefresh;
         private static string menuReturnStatus;
         private const string GameplayScene = "FirstPersonTest";
         private const string MenuScene = "MainMenu";
         private const string DifficultyProperty = "difficulty";
+        private const string DisplayNameProperty = "displayName";
+        private const string ReadyProperty = "ready";
+        private const string FinishProperty = "rifleFinish";
+        private const string TitleProperty = "playerTitle";
+        private const string SavedDisplayNameKey = "ArcadeShooter.DisplayName";
         private TMP_Text progressionText;
         private Button finishButton;
         private Button titleButton;
@@ -76,6 +83,105 @@ namespace ArcadeShooter.Networking
         public string Status => status;
         // The last replay or lobby-return failure, shown on the mission results screen.
         public string LastActionError { get; private set; }
+        public event Action UiChanged;
+        public bool HasSession => session != null;
+        public bool IsSessionHost => session != null && session.IsHost;
+        public int SessionPlayerCount => session?.PlayerCount ?? 0;
+        public int SessionCapacity => session?.MaxPlayers ?? 4;
+        public string SessionName => session?.Name ?? string.Empty;
+        public string JoinCode => session?.Code ?? string.Empty;
+        public IReadOnlyList<IReadOnlyPlayer> SessionPlayers => session?.Players;
+        public string HostPlayerId => session?.Host ?? string.Empty;
+        public string DisplayName => PlayerPrefs.GetString(SavedDisplayNameKey, "OPERATOR");
+        public bool LocalReady => session?.CurrentPlayer != null && IsReady(session.CurrentPlayer);
+        public bool CanToggleReady => session != null && !busy && !readySaving && !matchStarted;
+        public bool AllPlayersReady => session != null && session.PlayerCount > 0 && session.Players.All(IsReady);
+        public bool CanStartMission => CanManageMission && !matchStarted && difficultySaved && AllPlayersReady;
+
+        public static bool IsReady(IReadOnlyPlayer player) =>
+            player != null && player.Properties != null &&
+            player.Properties.TryGetValue(ReadyProperty, out PlayerProperty property) && property.Value == "1";
+
+        public static string PlayerDisplayName(IReadOnlyPlayer player, int index)
+        {
+            if (player?.Properties != null &&
+                player.Properties.TryGetValue(DisplayNameProperty, out PlayerProperty property) &&
+                !string.IsNullOrWhiteSpace(property.Value))
+                return property.Value;
+            return "OPERATOR " + (index + 1).ToString("00");
+        }
+
+        public static string PlayerFinish(IReadOnlyPlayer player) =>
+            player?.Properties != null && player.Properties.TryGetValue(FinishProperty, out PlayerProperty property)
+                ? property.Value : "STANDARD";
+
+        public void SaveDisplayName(string value)
+        {
+            value = new string((value ?? string.Empty).Trim().Take(16)
+                .Where(character => char.IsLetterOrDigit(character) || character == ' ' || character == '_')
+                .ToArray()).Trim();
+            if (value.Length == 0) value = "OPERATOR";
+            PlayerPrefs.SetString(SavedDisplayNameKey, value);
+            PlayerPrefs.Save();
+            if (session != null) _ = PublishLocalPlayerDataAsync();
+            UiChanged?.Invoke();
+        }
+
+        public void CopyJoinCode()
+        {
+            if (session == null || string.IsNullOrEmpty(session.Code)) return;
+            GUIUtility.systemCopyBuffer = session.Code;
+            status = "Join code copied.";
+            Refresh();
+        }
+
+        public void ToggleReady()
+        {
+            if (!CanToggleReady) return;
+            _ = SetReadyAsync(!LocalReady);
+        }
+
+        private async Task SetReadyAsync(bool ready)
+        {
+            ISession current = session;
+            if (current?.CurrentPlayer == null) return;
+            bool previous = IsReady(current.CurrentPlayer);
+            readySaving = true;
+            try
+            {
+                current.CurrentPlayer.SetProperty(ReadyProperty, new PlayerProperty(ready ? "1" : "0"));
+                await current.SaveCurrentPlayerDataAsync();
+                if (session == current) status = ready ? "Ready for deployment." : "Ready state cleared.";
+            }
+            catch (Exception exception)
+            {
+                current.CurrentPlayer.SetProperty(ReadyProperty, new PlayerProperty(previous ? "1" : "0"));
+                if (session == current) status = "Could not update ready state: " + exception.Message;
+                Debug.LogWarning(exception);
+            }
+            finally { readySaving = false; Refresh(); }
+        }
+
+        private async Task PublishLocalPlayerDataAsync()
+        {
+            ISession current = session;
+            if (current?.CurrentPlayer == null) return;
+            try
+            {
+                current.CurrentPlayer.SetProperty(DisplayNameProperty, new PlayerProperty(DisplayName));
+                current.CurrentPlayer.SetProperty(FinishProperty, new PlayerProperty(Profile.Data.selectedFinish.ToString()));
+                current.CurrentPlayer.SetProperty(TitleProperty, new PlayerProperty(Profile.Data.selectedTitle.ToString()));
+                if (!current.CurrentPlayer.Properties.ContainsKey(ReadyProperty))
+                    current.CurrentPlayer.SetProperty(ReadyProperty, new PlayerProperty("0"));
+                await current.SaveCurrentPlayerDataAsync();
+            }
+            catch (Exception exception)
+            {
+                if (session == current) status = "Connected, but profile details did not sync: " + exception.Message;
+                Debug.LogWarning(exception);
+            }
+            finally { Refresh(); }
+        }
 
         private void Awake()
         {
@@ -181,7 +287,7 @@ namespace ArcadeShooter.Networking
         {
             if (lobbyPanel == null || startButton == null) return;
             GameObject labelObject = new GameObject("Player Progression", typeof(RectTransform), typeof(TextMeshProUGUI));
-            labelObject.transform.SetParent(lobbyPanel.transform, false);
+            labelObject.transform.SetParent(lobbyExtrasRoot != null ? lobbyExtrasRoot : lobbyPanel.transform, false);
             progressionText = labelObject.GetComponent<TextMeshProUGUI>();
             progressionText.font = playersText.font;
             progressionText.fontSize = 23;
@@ -190,24 +296,24 @@ namespace ArcadeShooter.Networking
             progressionText.raycastTarget = false;
             RectTransform labelRect = progressionText.rectTransform;
             labelRect.anchorMin = labelRect.anchorMax = new Vector2(0.5f, 0.5f);
-            labelRect.anchoredPosition = new Vector2(590, 100);
+            labelRect.anchoredPosition = lobbyExtrasRoot != null ? new Vector2(0, 120) : new Vector2(590, 100);
             labelRect.sizeDelta = new Vector2(580, 130);
-            finishButton = ProgressionButton("Rifle Finish", 590, 10, () =>
+            finishButton = ProgressionButton("Rifle Finish", lobbyExtrasRoot != null ? 0 : 590, lobbyExtrasRoot != null ? 20 : 10, () =>
             {
                 RifleFinish next = Profile.Data.selectedFinish == RifleFinish.Standard ? RifleFinish.Teal : RifleFinish.Standard;
-                if (Profile.SelectFinish(next)) Refresh();
+                if (Profile.SelectFinish(next)) { _ = PublishLocalPlayerDataAsync(); Refresh(); }
             });
-            titleButton = ProgressionButton("Player Title", 590, -75, () =>
+            titleButton = ProgressionButton("Player Title", lobbyExtrasRoot != null ? 0 : 590, lobbyExtrasRoot != null ? -65 : -75, () =>
             {
                 PlayerTitle next = Profile.Data.selectedTitle == PlayerTitle.Recruit ? PlayerTitle.Pathfinder : PlayerTitle.Recruit;
-                if (Profile.SelectTitle(next)) Refresh();
+                if (Profile.SelectTitle(next)) { _ = PublishLocalPlayerDataAsync(); Refresh(); }
             });
-            difficultyButton = ProgressionButton("Difficulty", 590, -160, () => _ = SetDifficultyAsync());
+            difficultyButton = ProgressionButton("Difficulty", lobbyExtrasRoot != null ? 0 : 590, lobbyExtrasRoot != null ? -150 : -160, () => _ = SetDifficultyAsync());
         }
 
         private Button ProgressionButton(string name, float x, float y, UnityEngine.Events.UnityAction action)
         {
-            Button button = Instantiate(startButton, lobbyPanel.transform);
+            Button button = Instantiate(startButton, lobbyExtrasRoot != null ? lobbyExtrasRoot : lobbyPanel.transform);
             button.name = name;
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(action);
@@ -245,6 +351,7 @@ namespace ArcadeShooter.Networking
                 SubscribeSession();
                 difficultySaved = true;
                 status = "Lobby ready. Share the join code.";
+                await PublishLocalPlayerDataAsync();
             }
             catch (Exception exception)
             {
@@ -268,6 +375,7 @@ namespace ArcadeShooter.Networking
                 session = await MultiplayerService.Instance.JoinSessionByCodeAsync(code);
                 SubscribeSession();
                 status = "Connected. Waiting for host to start.";
+                await PublishLocalPlayerDataAsync();
             }
             catch (Exception exception)
             {
@@ -280,6 +388,8 @@ namespace ArcadeShooter.Networking
         private async Task LoadSessionSceneAsync(string sceneName)
         {
             if (!CanManageMission) return;
+            if (sceneName == GameplayScene && SceneManager.GetActiveScene().name == MenuScene && !CanStartMission)
+                return;
             if (matchStarted && (MissionController.Instance == null || !MissionController.Instance.IsFinished)) return;
             busy = true;
             matchStarted = true; // Also rejects new connections during the lobby lock request.
@@ -583,7 +693,7 @@ namespace ArcadeShooter.Networking
             if (hostButton != null) hostButton.interactable = !busy;
             if (joinButton != null) joinButton.interactable = !busy;
             if (startButton != null) startButton.gameObject.SetActive(session != null && session.IsHost);
-            if (startButton != null) startButton.interactable = CanManageMission && !matchStarted && difficultySaved;
+            if (startButton != null) startButton.interactable = CanStartMission;
             if (joinCodeText != null) joinCodeText.text = session == null ? string.Empty : "JOIN CODE  " + session.Code;
             if (playersText != null && session != null)
                 playersText.text = "Players  " + session.PlayerCount + " / 4\n" +
@@ -595,9 +705,11 @@ namespace ArcadeShooter.Networking
                     $"Teal finish: {(progressionRules.FinishUnlocked(level, RifleFinish.Teal) ? "UNLOCKED" : "LOCKED (level " + progressionRules.tealFinishLevel + ")")}   " +
                     $"Pathfinder: {(progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder) ? "UNLOCKED" : "LOCKED (level " + progressionRules.pathfinderTitleLevel + ")")}" +
                     (string.IsNullOrEmpty(Profile.LoadWarning) ? "" : "\n" + Profile.LoadWarning);
-                finishButton.GetComponentInChildren<TMP_Text>().text = "RIFLE FINISH: " + Profile.Data.selectedFinish;
-                titleButton.GetComponentInChildren<TMP_Text>().text = "TITLE: " + Profile.Data.selectedTitle;
-                difficultyButton.GetComponentInChildren<TMP_Text>().text = "DIFFICULTY: " + SelectedDifficulty;
+                finishButton.GetComponentInChildren<TMP_Text>(true).text =
+                    progressionRules.FinishUnlocked(level, RifleFinish.Teal) ? "CHANGE RIFLE FINISH  ›" : "TEAL FINISH  /  LEVEL " + progressionRules.tealFinishLevel;
+                titleButton.GetComponentInChildren<TMP_Text>(true).text =
+                    progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder) ? "CHANGE CALLSIGN TITLE  ›" : "PATHFINDER  /  LEVEL " + progressionRules.pathfinderTitleLevel;
+                difficultyButton.GetComponentInChildren<TMP_Text>(true).text = "MISSION DIFFICULTY  /  " + SelectedDifficulty.ToString().ToUpperInvariant();
                 finishButton.interactable = progressionRules.FinishUnlocked(level, RifleFinish.Teal);
                 titleButton.interactable = progressionRules.TitleUnlocked(level, PlayerTitle.Pathfinder);
                 difficultyButton.interactable = CanManageMission && !matchStarted;
@@ -605,6 +717,7 @@ namespace ArcadeShooter.Networking
             }
             if (statusText != null) statusText.text = gameplay && MissionController.Instance != null &&
                 MissionController.Instance.IsFinished && !busy ? "Mission ended. The host can replay or return everyone to the lobby." : status;
+            UiChanged?.Invoke();
         }
     }
 }

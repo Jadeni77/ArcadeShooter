@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 using ArcadeShooter.Combat;
+using ArcadeShooter.UI;
+using ArcadeShooter.Missions;
 
 namespace ArcadeShooter.Player
 {
@@ -10,7 +12,6 @@ namespace ArcadeShooter.Player
     public sealed class FirstPersonLook : MonoBehaviour
     {
         [SerializeField] private Transform cameraPivot;
-        [SerializeField, Min(0f)] private float mouseSensitivity = 0.12f;
         [SerializeField, Range(1f, 89f)] private float maxPitch = 85f;
 
         private InputAction lookAction;
@@ -36,6 +37,9 @@ namespace ArcadeShooter.Player
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
             {
+                // The mission overlay owns Escape while an online match is running.
+                if (MissionController.Instance != null && MissionController.Instance.IsSpawned &&
+                    !MissionController.Instance.IsFinished) return;
                 UnlockCursor();
                 return;
             }
@@ -51,7 +55,7 @@ namespace ArcadeShooter.Player
             if (cameraPivot == null)
                 return;
 
-            Vector2 delta = lookAction.ReadValue<Vector2>() * mouseSensitivity *
+            Vector2 delta = lookAction.ReadValue<Vector2>() * LocalGameSettings.MouseSensitivity *
                 (weaponAim != null ? weaponAim.SensitivityScale : 1f);
             transform.Rotate(Vector3.up, delta.x, Space.Self);
             pitch = Mathf.Clamp(pitch - delta.y, -maxPitch, maxPitch);
