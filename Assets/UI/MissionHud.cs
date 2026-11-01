@@ -37,6 +37,8 @@ namespace ArcadeShooter.UI
         private TextMeshProUGUI rankValue;
         private TextMeshProUGUI scoreBreakdown;
         private TextMeshProUGUI progressionResult;
+        private UnityEngine.UI.Image xpProgress;
+        private float resultsRevealAt = -1f;
         private TextMeshProUGUI resultStatus;
         private readonly GameObject[] playerRows = new GameObject[4];
         private readonly TextMeshProUGUI[,] playerCells = new TextMeshProUGUI[4, 7];
@@ -51,6 +53,7 @@ namespace ArcadeShooter.UI
         private void Awake()
         {
             BuildUi();
+            if (GetComponent<MissionPauseMenu>() == null) gameObject.AddComponent<MissionPauseMenu>();
             hudPanel.SetActive(false);
             promptPanel.SetActive(false);
             resultsPanel.SetActive(false);
@@ -92,9 +95,11 @@ namespace ArcadeShooter.UI
             if (!available) return;
             if (finished)
             {
+                if (resultsRevealAt < 0f) resultsRevealAt = Time.unscaledTime;
                 RefreshResults();
                 return;
             }
+            resultsRevealAt = -1f;
 
             missionTitle.text = mission.MissionName;
             missionStatus.text = mission.State == MissionState.Waiting
@@ -134,15 +139,24 @@ namespace ArcadeShooter.UI
         private void RefreshResults()
         {
             bool succeeded = mission.State == MissionState.Success;
-            resultTitle.text = succeeded ? "MISSION SUCCESS" : "MISSION FAILED";
+            resultTitle.text = succeeded ? "OPERATION COMPLETE" : "OPERATION FAILED";
             resultTitle.color = succeeded ? SuccessColor : FailureColor;
             resultMission.text = mission.MissionName + "   •   " + mission.Difficulty;
             bool ready = score != null && score.ResultsReady;
             MissionScoreBreakdown breakdown = ready ? score.Breakdown : default;
             resultReason.text = !ready ? string.Empty : DescribeOutcome(mission, breakdown);
             durationValue.text = ready ? FormatDuration(score.Duration) : "--:--";
-            scoreValue.text = ready ? score.TeamScore.ToString("N0") : "--";
+            float reveal = resultsRevealAt < 0f ? 1f :
+                Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((Time.unscaledTime - resultsRevealAt) / 1.2f));
+            scoreValue.text = ready ? Mathf.RoundToInt(score.TeamScore * reveal).ToString("N0") : "--";
             rankValue.text = ready ? score.Rank.ToString() : "--";
+            rankValue.color = !ready ? MutedColor : score.Rank.ToString() switch
+            {
+                "S" => new Color(1f, 0.8f, 0.33f),
+                "A" => SuccessColor,
+                "B" => new Color(0.52f, 0.82f, 1f),
+                _ => MutedColor
+            };
             scoreBreakdown.text = ready ? DescribeScore(breakdown, succeeded) : string.Empty;
             MultiplayerSessionController localSession = MultiplayerSessionController.Instance;
             LocalProfile profile = localSession?.Profile;
@@ -163,6 +177,8 @@ namespace ArcadeShooter.UI
                 progressionResult.text = $"+{localSession.LastEarnedXp:N0} XP   Level {profile.Level}   " +
                     $"{profile.XpIntoLevel:N0} / {profile.XpForNextLevel:N0} XP{levelUp}{unlocks}";
             }
+            xpProgress.fillAmount = profile == null || !localSession.HasLocalReward ? 0f :
+                Mathf.Clamp01((float)profile.XpIntoLevel / Mathf.Max(1, profile.XpForNextLevel)) * reveal;
 
             if (ready) score.CopyStats(statsCopy);
             else statsCopy.Clear();
@@ -279,21 +295,34 @@ namespace ArcadeShooter.UI
 
             // A raycastable backdrop covers older gameplay UI, preventing clicks through the results.
             resultsPanel = Panel("Mission Results", canvasObject.transform,
-                new Color(0.025f, 0.045f, 0.065f, 0.99f), true);
+                new Color(0.005f, 0.018f, 0.027f, 0.92f), true);
             Stretch(resultsPanel.GetComponent<RectTransform>());
+            GameObject topRail = Panel("Results Top Rail", resultsPanel.transform,
+                new Color(0.005f, 0.015f, 0.018f, 0.95f), false);
+            RectTransform topRect = topRail.GetComponent<RectTransform>();
+            topRect.anchorMin = new Vector2(0, 1); topRect.anchorMax = Vector2.one;
+            topRect.pivot = new Vector2(0.5f, 1); topRect.sizeDelta = new Vector2(0, 88);
+            topRect.anchoredPosition = Vector2.zero;
+            TextMeshProUGUI brand = Label("Results Brand", topRail.transform, 24, TextAlignmentOptions.Left);
+            brand.text = "ARCADE / SHOOTER     /     MISSION REPORT";
+            brand.color = MutedColor;
+            brand.rectTransform.anchorMin = new Vector2(0.05f, 0);
+            brand.rectTransform.anchorMax = new Vector2(0.95f, 1);
+            brand.rectTransform.offsetMin = brand.rectTransform.offsetMax = Vector2.zero;
             GameObject content = new GameObject("Results Content", typeof(RectTransform));
             content.transform.SetParent(resultsPanel.transform, false);
             RectTransform contentRect = content.GetComponent<RectTransform>();
-            contentRect.anchorMin = new Vector2(0.07f, 0.04f);
-            contentRect.anchorMax = new Vector2(0.93f, 0.96f);
+            contentRect.anchorMin = new Vector2(0.095f, 0.045f);
+            contentRect.anchorMax = new Vector2(0.905f, 0.91f);
             contentRect.offsetMin = contentRect.offsetMax = Vector2.zero;
-            Vertical(content, 12, new RectOffset()).childAlignment = TextAnchor.MiddleCenter;
+            Vertical(content, 9, new RectOffset()).childAlignment = TextAnchor.MiddleCenter;
 
-            resultTitle = Label("Outcome", content.transform, 54, TextAlignmentOptions.Center);
-            Height(resultTitle.gameObject, 68);
-            resultMission = Label("Mission", content.transform, 30, TextAlignmentOptions.Center);
-            resultMission.color = MutedColor;
-            Height(resultMission.gameObject, 40);
+            resultTitle = Label("Outcome", content.transform, 68, TextAlignmentOptions.Left);
+            resultTitle.fontStyle = FontStyles.Bold;
+            Height(resultTitle.gameObject, 82);
+            resultMission = Label("Mission", content.transform, 28, TextAlignmentOptions.Left);
+            resultMission.color = new Color(0.9f, 0.67f, 0.32f);
+            Height(resultMission.gameObject, 38);
             resultReason = Label("Outcome Reason", content.transform, 24, TextAlignmentOptions.Center);
             Height(resultReason.gameObject, 34);
 
@@ -305,14 +334,22 @@ namespace ArcadeShooter.UI
             durationValue = SummaryCard(summary.transform, "DURATION");
             scoreValue = SummaryCard(summary.transform, "TEAM SCORE");
             rankValue = SummaryCard(summary.transform, "MISSION RANK");
-            scoreBreakdown = Label("Score Breakdown", content.transform, 22, TextAlignmentOptions.Center);
+            scoreBreakdown = Label("Score Breakdown", content.transform, 21, TextAlignmentOptions.Center);
             scoreBreakdown.color = MutedColor;
             Height(scoreBreakdown.gameObject, 34);
             progressionResult = Label("XP and Unlocks", content.transform, 23, TextAlignmentOptions.Center);
             progressionResult.color = SuccessColor;
-            Height(progressionResult.gameObject, 68);
+            Height(progressionResult.gameObject, 57);
+            GameObject xpTrack = Panel("XP Track", content.transform, new Color(0.08f, 0.17f, 0.2f), false);
+            Height(xpTrack, 14);
+            GameObject xpFill = Panel("XP Progress", xpTrack.transform, SuccessColor, false);
+            Stretch(xpFill.GetComponent<RectTransform>());
+            xpProgress = xpFill.GetComponent<UnityEngine.UI.Image>();
+            xpProgress.type = UnityEngine.UI.Image.Type.Filled;
+            xpProgress.fillMethod = UnityEngine.UI.Image.FillMethod.Horizontal;
+            xpProgress.fillAmount = 0f;
 
-            GameObject header = TableRow("Statistics Header", content.transform, 42, new Color(0.08f, 0.18f, 0.23f));
+            GameObject header = TableRow("Statistics Header", content.transform, 42, new Color(0.08f, 0.18f, 0.23f, 0.88f));
             for (int column = 0; column < Columns.Length; column++)
             {
                 TextMeshProUGUI label = TableCell(header.transform, column, 21);

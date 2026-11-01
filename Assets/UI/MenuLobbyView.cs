@@ -69,6 +69,7 @@ namespace ArcadeShooter.UI
             BindVolume(masterSlider, AudioMixSettings.Bus.Master, "ArcadeShooter.Audio.Master");
             BindVolume(musicSlider, AudioMixSettings.Bus.Music, "ArcadeShooter.Audio.Music");
             BindVolume(sfxSlider, AudioMixSettings.Bus.Sfx, "ArcadeShooter.Audio.Sfx");
+            gameObject.AddComponent<MenuDisplaySettings>().Initialize(settingsPage);
             controller.UiChanged += Refresh;
             Show(landingPage);
             loadoutPage.SetActive(false);
