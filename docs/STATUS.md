@@ -2,6 +2,12 @@
 
 Last reviewed: 2026-11-01 (America/New_York). Inspect `git status` and the project before each task.
 
+## M10 integration merged to develop — final acceptance still open
+
+- [Integration PR #19](https://github.com/Jadeni77/ArcadeShooter/pull/19) merged Stages A–E into protected `develop` on 2026-11-01. GitHub marked the component PRs #14–#18 merged through the preserved merge history. This stages the new UI for playtesting; it does not close the Stage F acceptance checklist.
+- Actual pre-M10 Unity [menu and results captures](M10_BEFORE_AFTER.md) now sit beside the integrated Unity captures for a 1600×900 before/after review. The earlier scene was read from M9 merge `d03d873`; no owner checkout edits were used or changed.
+- The combined macOS Development Player built and opened to MainMenu. Full EditMode tests passed 44/45 with the established M8B batch mixer failure. Live two-client UI/focus, alternate resolutions in Game view, and UI frame-time measurements remain in [Stage F review](M10_STAGE_F_REVIEW.md).
+
 ## M10 Stage F — integrated branch, acceptance checks open
 
 - `feature/m10-integration-polish` combines Stages A–E from the latest `develop` in an isolated checkout. Integration preserved both UI decisions as D-025 and D-026 and resolved overlapping status/roadmap notes. The owner's local edits remain untouched.
